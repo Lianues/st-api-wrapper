@@ -1,5 +1,5 @@
 export type EndpointDefinition<I, O> = {
-  /** Endpoint name without namespace, e.g. "getFinalChatPrompt" */
+  /** Endpoint name without namespace, e.g. "get" */
   name: string;
   /** Actual implementation */
   handler: (input: I) => Promise<O> | O;
@@ -51,7 +51,7 @@ export class ApiRegistry {
   /**
    * Documentation path convention.
    * Docs are maintained under /docs following the API path.
-   * Example: "prompt.getFinalChatPrompt" -> "docs/prompt/getFinalChatPrompt.md"
+   * Example: "prompt.get" -> "docs/prompt/get.md"
    */
   getDocPath(fullName: string): string {
     const [namespace, endpoint] = fullName.split('.', 2);

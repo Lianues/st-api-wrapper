@@ -8,8 +8,8 @@
 - 文档路径：`docs/<namespace>/<endpoint>.md`
 
 示例：
-- API：`prompt.getFinalChatPrompt`
-- 文档：`docs/prompt/getFinalChatPrompt.md`
+- API：`prompt.get`
+- 文档：`docs/prompt/get.md`
 
 ## 文档模板（每个 endpoint）
 
@@ -30,7 +30,7 @@
 > 备注：代码侧会提供：
 >
 > - `window.ST_API.listEndpoints()`：列出所有 endpoint（`namespace.endpoint`）
-> - `window.ST_API.getDocPath(fullName)`：返回约定的文档路径（例如 `docs/prompt/getFinalChatPrompt.md`）
+> - `window.ST_API.getDocPath(fullName)`：返回约定的文档路径（例如 `docs/prompt/get.md`）
 >
 > 你也可以执行 `npm run docs:stub` 自动生成缺失的文档空壳。
 

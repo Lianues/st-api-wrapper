@@ -13,9 +13,11 @@ export interface NormalizeOptions {
  * 酒馆内部原始消息格式
  */
 export type RawStMessage = {
-  mes: string;
-  is_user: boolean;
-  is_system: boolean;
+  mes?: string;
+  content?: string;
+  role?: string;
+  is_user?: boolean;
+  is_system?: boolean;
   name?: string;
   swipe_id?: number;
   swipes?: string[];
@@ -41,10 +43,26 @@ export async function normalizeChatMessages(raw: unknown, options: NormalizeOpti
   const includeSwipes = !!options.includeSwipes;
 
   const results = await Promise.all((raw as RawStMessage[]).map(async (m) => {
+    // 1. 提取文本内容 (适配 mes 或 content)
+    const text = (m.mes ?? m.content ?? '').toString();
+
+    // 2. 确定角色
     let role: string;
-    if (m.is_user) role = 'user';
-    else if (m.is_system) role = 'system';
-    else role = format === 'gemini' ? 'model' : 'assistant';
+    if (m.is_user) {
+      role = 'user';
+    } else if (m.is_system) {
+      role = 'system';
+    } else if (m.role) {
+      // 适配酒馆已处理的角色名
+      const r = m.role.toLowerCase();
+      if (r === 'assistant') {
+        role = format === 'gemini' ? 'model' : 'assistant';
+      } else {
+        role = r;
+      }
+    } else {
+      role = format === 'gemini' ? 'model' : 'assistant';
+    }
 
     const base: any = { 
       role, 
@@ -53,14 +71,15 @@ export async function normalizeChatMessages(raw: unknown, options: NormalizeOpti
     };
 
     if (format === 'openai') {
-      base.content = m.mes || '';
+      base.content = text;
       if (includeSwipes && m.swipes) base.swipes = m.swipes;
     } else {
-      base.parts = await buildParts(m.mes, m.extra?.media, mediaFormat);
+      // 构建 Gemini 风格的 parts
+      base.parts = await buildParts(text, m.extra?.media, mediaFormat);
       if (includeSwipes && m.swipes) {
-        base.swipes = await Promise.all(m.swipes.map((text, idx) => {
+        base.swipes = await Promise.all(m.swipes.map((t, idx) => {
           const swipeMedia = m.swipe_info?.[idx]?.extra?.media;
-          return buildParts(text, swipeMedia, mediaFormat);
+          return buildParts(t, swipeMedia, mediaFormat);
         }));
       }
     }

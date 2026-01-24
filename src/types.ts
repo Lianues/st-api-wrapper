@@ -30,9 +30,7 @@ export type ChatMessage = {
 );
 
 export interface PromptResult {
-  prompt: string;
   chat: ChatMessage[];
   characterId?: number;
-  mainApi?: string;
   timestamp?: number;
 }

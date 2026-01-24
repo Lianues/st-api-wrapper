@@ -7,7 +7,7 @@
 
     <div class="status">
       <div>已注册 endpoints：{{ endpoints.length }}</div>
-      <div v-if="lastPrompt">上次抓取 messages 数：{{ lastPrompt.messages.length }}</div>
+      <div v-if="lastPrompt">上次抓取消息数：{{ lastPrompt.chat.length }}</div>
       <div v-if="loading">正在构建提示词...</div>
       <div v-if="error" class="error">{{ error }}</div>
     </div>
@@ -17,7 +17,7 @@
       <div class="messages-list">
         <div v-for="(msg, idx) in previewMessages" :key="idx" :class="['message-item', msg.role]">
           <span class="role-tag">{{ msg.role.toUpperCase() }}</span>
-          <pre>{{ msg.content }}</pre>
+          <pre>{{ 'parts' in msg ? msg.parts.map(p => 'text' in p ? p.text : '').join('') : msg.content }}</pre>
         </div>
       </div>
     </details>
@@ -29,7 +29,7 @@ import { computed, ref } from 'vue';
 import type { PromptResult } from './types';
 
 type PromptApi = {
-  getFinalChatPrompt: (input: { timeoutMs?: number; forceCharacterId?: number }) => Promise<PromptResult>;
+  get: (input: { timeoutMs?: number; forceCharacterId?: number }) => Promise<PromptResult>;
 };
 
 type STApi = {
@@ -42,7 +42,7 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const lastPrompt = ref<PromptResult | null>(null);
 
-const previewMessages = computed(() => lastPrompt.value?.messages.slice(0, 5) ?? []);
+const previewMessages = computed(() => lastPrompt.value?.chat.slice(0, 5) ?? []);
 
 function getApi(): STApi {
   const api = window.ST_API as STApi | undefined;
@@ -67,10 +67,10 @@ async function fetchPrompt() {
 
   try {
     const api = getApi();
-    lastPrompt.value = await api.prompt.getFinalChatPrompt({ timeoutMs: 8000 });
+    lastPrompt.value = await api.prompt.get({ timeoutMs: 8000 });
     console.log('[ST API Wrapper] Final chat prompt:', lastPrompt.value);
-    console.log('[ST API Wrapper] Final chat prompt messages:', lastPrompt.value.messages);
-    toastr.success(`抓取成功：messages=${lastPrompt.value.messages.length}（已输出到控制台）`);
+    console.log('[ST API Wrapper] Final chat messages:', lastPrompt.value.chat);
+    toastr.success(`抓取成功：chat=${lastPrompt.value.chat.length}（已输出到控制台）`);
   } catch (e: any) {
     error.value = e?.message ?? String(e);
   } finally {

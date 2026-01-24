@@ -3,6 +3,8 @@ import type {
   BuildRequestOutput,
   ChatCompletionMessage,
   ExtraMessageBlock,
+  GenerateInput,
+  GenerateOutput,
   GetPromptInput,
   GetPromptOutput,
 } from './types';
@@ -122,7 +124,7 @@ function insertExtraBlocks(messages: ChatCompletionMessage[], blocks: ExtraMessa
  */
 export async function get(input: GetPromptInput): Promise<GetPromptOutput> {
   const ctx = window.SillyTavern.getContext();
-  const { eventSource, event_types, generate, characterId, mainApi } = ctx;
+  const { eventSource, event_types, generate, characterId } = ctx;
 
   const timeoutMs = input?.timeoutMs ?? 8000;
   const chid = input?.forceCharacterId ?? characterId;
@@ -148,13 +150,10 @@ export async function get(input: GetPromptInput): Promise<GetPromptOutput> {
 
     const onReady = async (data: any) => {
       const chat = await normalizeChatMessages(data?.chat);
-      if (chat.length === 0) return;
 
       finish(undefined, {
-        prompt: data?.prompt || '',
         chat,
         characterId: chid,
-        mainApi: String(mainApi ?? ''),
         timestamp: Date.now(),
       });
     };
@@ -276,7 +275,6 @@ export async function buildRequest(input: BuildRequestInput): Promise<BuildReque
 
         const api = String(mainApi ?? '');
         const out: BuildRequestOutput = {
-          mainApi: api,
           timestamp: Date.now(),
           characterId: chid,
         };
@@ -358,6 +356,249 @@ export async function buildRequest(input: BuildRequestInput): Promise<BuildReque
 
       try {
         Promise.resolve(generate('normal', { force_chid: chid, skipWIAN }, true)).catch((e: unknown) => finish(e));
+      } catch (e) {
+        finish(e);
+      }
+    });
+  } finally {
+    // always rollback in reverse order
+    for (let i = restorers.length - 1; i >= 0; i--) {
+      try {
+        restorers[i]();
+      } catch {
+        // ignore rollback errors
+      }
+    }
+  }
+}
+
+/**
+ * 真正发起一次生成请求（可选写入聊天），并支持 token 流式回调。
+ */
+export async function generate(input: GenerateInput): Promise<GenerateOutput> {
+  const ctx = window.SillyTavern.getContext();
+  const {
+    eventSource,
+    event_types,
+    generate: stGenerate,
+    sendGenerationRequest,
+    extractMessageFromData,
+    characterId,
+    mainApi,
+  } = ctx as any;
+
+  const writeToChat = Boolean(input?.writeToChat);
+  const stream = Boolean(input?.stream);
+  const onToken = typeof input?.onToken === 'function' ? input.onToken : undefined;
+  const includeRequest = Boolean(input?.includeRequest);
+
+  const timeoutMs = input?.timeoutMs ?? 8000;
+  const chid = input?.forceCharacterId ?? characterId;
+
+  if (chid === undefined || chid === null) {
+    throw new Error('No character selected (characterId is undefined).');
+  }
+
+  const chOpt = input?.chatHistory;
+  const hasChatOverride = Array.isArray(chOpt?.replace) || (Array.isArray(chOpt?.inject) && chOpt.inject.length > 0);
+  if (writeToChat && hasChatOverride) {
+    throw new Error('chatHistory.replace/inject is not supported when writeToChat=true (it would irreversibly alter the current chat).');
+  }
+
+  let request: BuildRequestOutput | undefined;
+  if (!writeToChat || includeRequest) {
+    request = await buildRequest(input);
+  }
+
+  // --- background mode: send request but do not write to chat ---
+  if (!writeToChat) {
+    const api = String(mainApi ?? '');
+    let text = '';
+    let streamedAny = false;
+    let lastFull = '';
+
+    const callOnToken = (full: string) => {
+      if (!stream || !onToken) return;
+      const delta = full.startsWith(lastFull) ? full.slice(lastFull.length) : full;
+      lastFull = full;
+      streamedAny = true;
+      onToken(delta, full);
+    };
+
+    if (api === 'openai') {
+      const messages = request?.chatCompletionMessages;
+      if (!Array.isArray(messages)) {
+        throw new Error('Background generate requires chatCompletionMessages (openai).');
+      }
+
+      const res = await Promise.resolve(sendGenerationRequest?.('normal', { prompt: messages }));
+
+      // sendOpenAIRequest(stream=true) returns an async generator factory
+      if (typeof res === 'function') {
+        for await (const chunk of res()) {
+          const full = String(chunk?.text ?? '');
+          callOnToken(full);
+        }
+        text = lastFull;
+      } else if (typeof extractMessageFromData === 'function') {
+        text = String(extractMessageFromData(res, api) ?? '');
+      } else {
+        text = typeof res === 'string' ? res : String(res ?? '');
+      }
+    } else {
+      const generateData = request?.generateData;
+      if (generateData === undefined) {
+        throw new Error('Background generate requires generateData (non-openai).');
+      }
+
+      const res = await Promise.resolve(sendGenerationRequest?.('normal', generateData));
+      if (typeof extractMessageFromData === 'function') {
+        text = String(extractMessageFromData(res, api) ?? '');
+      } else {
+        text = typeof res === 'string' ? res : String(res?.output ?? res?.text ?? '');
+      }
+    }
+
+    // best-effort streaming fallback (non-openai / non-stream response)
+    if (stream && onToken && !streamedAny) {
+      onToken(text, text);
+    }
+
+    const out: GenerateOutput = {
+      timestamp: Date.now(),
+      characterId: chid,
+      text,
+      from: 'background',
+      ...(includeRequest && request ? { request } : {}),
+    };
+    return out;
+  }
+
+  // --- in-chat mode: trigger SillyTavern native generation ---
+  const restorers: Array<() => void> = [];
+  let skipWIAN = false;
+
+  // best-effort request snapshot for debugging
+  const api = String(mainApi ?? '');
+
+  // streaming state
+  let streamedText = '';
+  let streamedAny = false;
+
+  const onStreamToken = (delta: any) => {
+    const d = typeof delta === 'string' ? delta : String(delta ?? '');
+    if (!d) return;
+    streamedAny = true;
+    streamedText += d;
+    if (stream && onToken) onToken(d, streamedText);
+  };
+
+  const hasExtraBlocks = Array.isArray(input?.extraBlocks) && input.extraBlocks.length > 0;
+  const onChatPromptReady = (data: any) => {
+    if (!hasExtraBlocks) return;
+    if (data?.dryRun === true) return;
+    if (!Array.isArray(data?.chat) || data.chat.length === 0) return;
+    // Only meaningful for chat-completions-like prompts.
+    data.chat = insertExtraBlocks(data.chat, input.extraBlocks!);
+  };
+
+  try {
+    // --- preset overrides (chat completion only, but safe to apply regardless) ---
+    const presetOpt = input?.preset ?? { mode: 'current' as const };
+    if (presetOpt.mode === 'inject') {
+      if (!presetOpt.preset) throw new Error('preset.mode=inject requires preset.preset');
+      const applied = applyPresetToChatCompletionSettings(ctx.chatCompletionSettings, presetOpt.preset);
+      restorers.push(applied.restore);
+    } else if (presetOpt.mode === 'disable') {
+      const settings = ctx.chatCompletionSettings;
+      const snapshot = { prompt_order: settings?.prompt_order };
+      const promptOrderCharacterId = detectPromptOrderCharacterId(settings, 100001);
+
+      const identifiers = Array.isArray(settings?.prompts)
+        ? settings.prompts.map((p: any) => p?.identifier).filter((x: any) => typeof x === 'string' && x)
+        : [];
+
+      settings.prompt_order = [
+        {
+          character_id: promptOrderCharacterId,
+          order: identifiers.map((identifier: string) => ({ identifier, enabled: false })),
+        },
+      ];
+
+      restorers.push(() => {
+        settings.prompt_order = snapshot.prompt_order;
+      });
+    }
+
+    // --- worldbook overrides ---
+    const wbOpt = input?.worldbook ?? { mode: 'current' as const };
+    if (wbOpt.mode === 'disable') {
+      skipWIAN = true;
+    } else if (wbOpt.mode === 'inject') {
+      if (!wbOpt.worldBook) throw new Error('worldbook.mode=inject requires worldbook.worldBook');
+      const snapshot = ctx.chatMetadata?.world_info;
+      if (!ctx.chatMetadata) throw new Error('chatMetadata not available in context');
+      ctx.chatMetadata.world_info = worldBookToStWorldInfo(wbOpt.worldBook);
+      restorers.push(() => {
+        ctx.chatMetadata.world_info = snapshot;
+      });
+    }
+
+    return await new Promise<GenerateOutput>((resolve, reject) => {
+      let done = false;
+      let timer: any;
+
+      const cleanup = () => {
+        if (timer) clearTimeout(timer);
+        if (stream) eventSource.removeListener(event_types.STREAM_TOKEN_RECEIVED, onStreamToken);
+        if (hasExtraBlocks) eventSource.removeListener(event_types.CHAT_COMPLETION_PROMPT_READY, onChatPromptReady);
+      };
+
+      const finish = (err?: unknown, text?: string) => {
+        if (done) return;
+        done = true;
+        cleanup();
+        if (err) return reject(err);
+
+        const outText = String(text ?? '');
+        // fallback: if we had streaming tokens but no final text, use streamed aggregation
+        const finalText = outText.trim() ? outText : (streamedAny ? streamedText : outText);
+
+        // fallback: if stream requested but no tokens were observed, call once with finalText
+        if (stream && onToken && !streamedAny && finalText) {
+          onToken(finalText, finalText);
+        }
+
+        const out: GenerateOutput = {
+          timestamp: Date.now(),
+          characterId: chid,
+          text: finalText,
+          from: 'inChat',
+          ...(includeRequest && request ? { request } : {}),
+        };
+        return resolve(out);
+      };
+
+      if (stream) eventSource.on(event_types.STREAM_TOKEN_RECEIVED, onStreamToken);
+      if (hasExtraBlocks) eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, onChatPromptReady);
+
+      timer = setTimeout(() => {
+        finish(new Error(`Timeout: generation did not finish within ${timeoutMs}ms.`));
+      }, timeoutMs);
+
+      try {
+        Promise.resolve(stGenerate('normal', { force_chid: chid, skipWIAN }, false))
+          .then((res: any) => {
+            if (typeof extractMessageFromData === 'function') {
+              try {
+                return finish(undefined, String(extractMessageFromData(res, api) ?? ''));
+              } catch {
+                return finish(undefined, String(res ?? ''));
+              }
+            }
+            return finish(undefined, String(res ?? ''));
+          })
+          .catch((e: unknown) => finish(e));
       } catch (e) {
         finish(e);
       }

@@ -6296,7 +6296,7 @@ var __publicField = (obj, key, value) => {
       const lastPrompt = /* @__PURE__ */ ref(null);
       const previewMessages = computed(() => {
         var _a;
-        return ((_a = lastPrompt.value) == null ? void 0 : _a.messages.slice(0, 5)) ?? [];
+        return ((_a = lastPrompt.value) == null ? void 0 : _a.chat.slice(0, 5)) ?? [];
       });
       function getApi() {
         const api = window.ST_API;
@@ -6319,10 +6319,10 @@ var __publicField = (obj, key, value) => {
         error.value = null;
         try {
           const api = getApi();
-          lastPrompt.value = await api.prompt.getFinalChatPrompt({ timeoutMs: 8e3 });
+          lastPrompt.value = await api.prompt.get({ timeoutMs: 8e3 });
           console.log("[ST API Wrapper] Final chat prompt:", lastPrompt.value);
-          console.log("[ST API Wrapper] Final chat prompt messages:", lastPrompt.value.messages);
-          toastr.success(`抓取成功：messages=${lastPrompt.value.messages.length}（已输出到控制台）`);
+          console.log("[ST API Wrapper] Final chat messages:", lastPrompt.value.chat);
+          toastr.success(`抓取成功：chat=${lastPrompt.value.chat.length}（已输出到控制台）`);
         } catch (e) {
           error.value = (e == null ? void 0 : e.message) ?? String(e);
         } finally {
@@ -6345,7 +6345,7 @@ var __publicField = (obj, key, value) => {
           ]),
           createBaseVNode("div", _hoisted_2, [
             createBaseVNode("div", null, "已注册 endpoints：" + toDisplayString(endpoints2.value.length), 1),
-            lastPrompt.value ? (openBlock(), createElementBlock("div", _hoisted_3, "上次抓取 messages 数：" + toDisplayString(lastPrompt.value.messages.length), 1)) : createCommentVNode("", true),
+            lastPrompt.value ? (openBlock(), createElementBlock("div", _hoisted_3, "上次抓取消息数：" + toDisplayString(lastPrompt.value.chat.length), 1)) : createCommentVNode("", true),
             loading.value ? (openBlock(), createElementBlock("div", _hoisted_4, "正在构建提示词...")) : createCommentVNode("", true),
             error.value ? (openBlock(), createElementBlock("div", _hoisted_5, toDisplayString(error.value), 1)) : createCommentVNode("", true)
           ]),
@@ -6358,7 +6358,7 @@ var __publicField = (obj, key, value) => {
                   class: normalizeClass(["message-item", msg.role])
                 }, [
                   createBaseVNode("span", _hoisted_8, toDisplayString(msg.role.toUpperCase()), 1),
-                  createBaseVNode("pre", null, toDisplayString(msg.content), 1)
+                  createBaseVNode("pre", null, toDisplayString("parts" in msg ? msg.parts.map((p2) => "text" in p2 ? p2.text : "").join("") : msg.content), 1)
                 ], 2);
               }), 128))
             ])
@@ -6367,7 +6367,7 @@ var __publicField = (obj, key, value) => {
       };
     }
   });
-  const App_vue_vue_type_style_index_0_scoped_db366884_lang = "";
+  const App_vue_vue_type_style_index_0_scoped_5dcd21f5_lang = "";
   const _export_sfc = (sfc, props) => {
     const target = sfc.__vccOpts || sfc;
     for (const [key, val] of props) {
@@ -6375,7 +6375,7 @@ var __publicField = (obj, key, value) => {
     }
     return target;
   };
-  const App = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-db366884"]]);
+  const App = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-5dcd21f5"]]);
   class ApiRegistry {
     constructor() {
       __publicField(this, "endpoints", /* @__PURE__ */ new Map());
@@ -6411,7 +6411,7 @@ var __publicField = (obj, key, value) => {
     /**
      * Documentation path convention.
      * Docs are maintained under /docs following the API path.
-     * Example: "prompt.getFinalChatPrompt" -> "docs/prompt/getFinalChatPrompt.md"
+     * Example: "prompt.get" -> "docs/prompt/get.md"
      */
     getDocPath(fullName) {
       const [namespace, endpoint] = fullName.split(".", 2);
@@ -6440,29 +6440,38 @@ var __publicField = (obj, key, value) => {
     const includeSwipes = !!options.includeSwipes;
     const results = await Promise.all(raw.map(async (m) => {
       var _a;
+      const text = (m.mes ?? m.content ?? "").toString();
       let role;
-      if (m.is_user)
+      if (m.is_user) {
         role = "user";
-      else if (m.is_system)
+      } else if (m.is_system) {
         role = "system";
-      else
+      } else if (m.role) {
+        const r = m.role.toLowerCase();
+        if (r === "assistant") {
+          role = format === "gemini" ? "model" : "assistant";
+        } else {
+          role = r;
+        }
+      } else {
         role = format === "gemini" ? "model" : "assistant";
+      }
       const base = {
         role,
         ...m.name ? { name: m.name } : {},
         swipeId: m.swipe_id ?? 0
       };
       if (format === "openai") {
-        base.content = m.mes || "";
+        base.content = text;
         if (includeSwipes && m.swipes)
           base.swipes = m.swipes;
       } else {
-        base.parts = await buildParts(m.mes, (_a = m.extra) == null ? void 0 : _a.media, mediaFormat);
+        base.parts = await buildParts(text, (_a = m.extra) == null ? void 0 : _a.media, mediaFormat);
         if (includeSwipes && m.swipes) {
-          base.swipes = await Promise.all(m.swipes.map((text, idx) => {
+          base.swipes = await Promise.all(m.swipes.map((t, idx) => {
             var _a2, _b, _c;
             const swipeMedia = (_c = (_b = (_a2 = m.swipe_info) == null ? void 0 : _a2[idx]) == null ? void 0 : _b.extra) == null ? void 0 : _c.media;
-            return buildParts(text, swipeMedia, mediaFormat);
+            return buildParts(t, swipeMedia, mediaFormat);
           }));
         }
       }
@@ -6810,7 +6819,7 @@ var __publicField = (obj, key, value) => {
   }
   async function get$6(input) {
     const ctx = window.SillyTavern.getContext();
-    const { eventSource, event_types, generate, characterId, mainApi } = ctx;
+    const { eventSource, event_types, generate: generate2, characterId } = ctx;
     const timeoutMs = (input == null ? void 0 : input.timeoutMs) ?? 8e3;
     const chid = (input == null ? void 0 : input.forceCharacterId) ?? characterId;
     if (chid === void 0 || chid === null) {
@@ -6833,13 +6842,9 @@ var __publicField = (obj, key, value) => {
       };
       const onReady = async (data) => {
         const chat = await normalizeChatMessages(data == null ? void 0 : data.chat);
-        if (chat.length === 0)
-          return;
         finish(void 0, {
-          prompt: (data == null ? void 0 : data.prompt) || "",
           chat,
           characterId: chid,
-          mainApi: String(mainApi ?? ""),
           timestamp: Date.now()
         });
       };
@@ -6849,7 +6854,7 @@ var __publicField = (obj, key, value) => {
         finish(new Error(`Timeout: did not receive CHAT_COMPLETION_PROMPT_READY within ${timeoutMs}ms.`));
       }, timeoutMs);
       try {
-        Promise.resolve(generate("normal", { force_chid: chid }, true)).catch((e) => finish(e));
+        Promise.resolve(generate2("normal", { force_chid: chid }, true)).catch((e) => finish(e));
       } catch (e) {
         finish(e);
       }
@@ -6858,7 +6863,7 @@ var __publicField = (obj, key, value) => {
   async function buildRequest(input) {
     var _a;
     const ctx = window.SillyTavern.getContext();
-    const { eventSource, event_types, generate, characterId, mainApi } = ctx;
+    const { eventSource, event_types, generate: generate2, characterId, mainApi } = ctx;
     const timeoutMs = (input == null ? void 0 : input.timeoutMs) ?? 8e3;
     const chid = (input == null ? void 0 : input.forceCharacterId) ?? characterId;
     if (chid === void 0 || chid === null) {
@@ -6938,7 +6943,6 @@ var __publicField = (obj, key, value) => {
             return reject(err);
           const api = String(mainApi ?? "");
           const out = {
-            mainApi: api,
             timestamp: Date.now(),
             characterId: chid
           };
@@ -7008,7 +7012,214 @@ var __publicField = (obj, key, value) => {
           finish(new Error(`Timeout: did not receive prompt events within ${timeoutMs}ms.`));
         }, timeoutMs);
         try {
-          Promise.resolve(generate("normal", { force_chid: chid, skipWIAN }, true)).catch((e) => finish(e));
+          Promise.resolve(generate2("normal", { force_chid: chid, skipWIAN }, true)).catch((e) => finish(e));
+        } catch (e) {
+          finish(e);
+        }
+      });
+    } finally {
+      for (let i = restorers.length - 1; i >= 0; i--) {
+        try {
+          restorers[i]();
+        } catch {
+        }
+      }
+    }
+  }
+  async function generate(input) {
+    var _a;
+    const ctx = window.SillyTavern.getContext();
+    const {
+      eventSource,
+      event_types,
+      generate: stGenerate,
+      sendGenerationRequest,
+      extractMessageFromData,
+      characterId,
+      mainApi
+    } = ctx;
+    const writeToChat = Boolean(input == null ? void 0 : input.writeToChat);
+    const stream = Boolean(input == null ? void 0 : input.stream);
+    const onToken = typeof (input == null ? void 0 : input.onToken) === "function" ? input.onToken : void 0;
+    const includeRequest = Boolean(input == null ? void 0 : input.includeRequest);
+    const timeoutMs = (input == null ? void 0 : input.timeoutMs) ?? 8e3;
+    const chid = (input == null ? void 0 : input.forceCharacterId) ?? characterId;
+    if (chid === void 0 || chid === null) {
+      throw new Error("No character selected (characterId is undefined).");
+    }
+    const chOpt = input == null ? void 0 : input.chatHistory;
+    const hasChatOverride = Array.isArray(chOpt == null ? void 0 : chOpt.replace) || Array.isArray(chOpt == null ? void 0 : chOpt.inject) && chOpt.inject.length > 0;
+    if (writeToChat && hasChatOverride) {
+      throw new Error("chatHistory.replace/inject is not supported when writeToChat=true (it would irreversibly alter the current chat).");
+    }
+    let request;
+    if (!writeToChat || includeRequest) {
+      request = await buildRequest(input);
+    }
+    if (!writeToChat) {
+      const api2 = String(mainApi ?? "");
+      let text = "";
+      let streamedAny2 = false;
+      let lastFull = "";
+      const callOnToken = (full) => {
+        if (!stream || !onToken)
+          return;
+        const delta = full.startsWith(lastFull) ? full.slice(lastFull.length) : full;
+        lastFull = full;
+        streamedAny2 = true;
+        onToken(delta, full);
+      };
+      if (api2 === "openai") {
+        const messages = request == null ? void 0 : request.chatCompletionMessages;
+        if (!Array.isArray(messages)) {
+          throw new Error("Background generate requires chatCompletionMessages (openai).");
+        }
+        const res = await Promise.resolve(sendGenerationRequest == null ? void 0 : sendGenerationRequest("normal", { prompt: messages }));
+        if (typeof res === "function") {
+          for await (const chunk of res()) {
+            const full = String((chunk == null ? void 0 : chunk.text) ?? "");
+            callOnToken(full);
+          }
+          text = lastFull;
+        } else if (typeof extractMessageFromData === "function") {
+          text = String(extractMessageFromData(res, api2) ?? "");
+        } else {
+          text = typeof res === "string" ? res : String(res ?? "");
+        }
+      } else {
+        const generateData = request == null ? void 0 : request.generateData;
+        if (generateData === void 0) {
+          throw new Error("Background generate requires generateData (non-openai).");
+        }
+        const res = await Promise.resolve(sendGenerationRequest == null ? void 0 : sendGenerationRequest("normal", generateData));
+        if (typeof extractMessageFromData === "function") {
+          text = String(extractMessageFromData(res, api2) ?? "");
+        } else {
+          text = typeof res === "string" ? res : String((res == null ? void 0 : res.output) ?? (res == null ? void 0 : res.text) ?? "");
+        }
+      }
+      if (stream && onToken && !streamedAny2) {
+        onToken(text, text);
+      }
+      const out = {
+        timestamp: Date.now(),
+        characterId: chid,
+        text,
+        from: "background",
+        ...includeRequest && request ? { request } : {}
+      };
+      return out;
+    }
+    const restorers = [];
+    let skipWIAN = false;
+    const api = String(mainApi ?? "");
+    let streamedText = "";
+    let streamedAny = false;
+    const onStreamToken = (delta) => {
+      const d = typeof delta === "string" ? delta : String(delta ?? "");
+      if (!d)
+        return;
+      streamedAny = true;
+      streamedText += d;
+      if (stream && onToken)
+        onToken(d, streamedText);
+    };
+    const hasExtraBlocks = Array.isArray(input == null ? void 0 : input.extraBlocks) && input.extraBlocks.length > 0;
+    const onChatPromptReady = (data) => {
+      if (!hasExtraBlocks)
+        return;
+      if ((data == null ? void 0 : data.dryRun) === true)
+        return;
+      if (!Array.isArray(data == null ? void 0 : data.chat) || data.chat.length === 0)
+        return;
+      data.chat = insertExtraBlocks(data.chat, input.extraBlocks);
+    };
+    try {
+      const presetOpt = (input == null ? void 0 : input.preset) ?? { mode: "current" };
+      if (presetOpt.mode === "inject") {
+        if (!presetOpt.preset)
+          throw new Error("preset.mode=inject requires preset.preset");
+        const applied = applyPresetToChatCompletionSettings(ctx.chatCompletionSettings, presetOpt.preset);
+        restorers.push(applied.restore);
+      } else if (presetOpt.mode === "disable") {
+        const settings = ctx.chatCompletionSettings;
+        const snapshot = { prompt_order: settings == null ? void 0 : settings.prompt_order };
+        const promptOrderCharacterId = detectPromptOrderCharacterId(settings, 100001);
+        const identifiers = Array.isArray(settings == null ? void 0 : settings.prompts) ? settings.prompts.map((p2) => p2 == null ? void 0 : p2.identifier).filter((x) => typeof x === "string" && x) : [];
+        settings.prompt_order = [
+          {
+            character_id: promptOrderCharacterId,
+            order: identifiers.map((identifier) => ({ identifier, enabled: false }))
+          }
+        ];
+        restorers.push(() => {
+          settings.prompt_order = snapshot.prompt_order;
+        });
+      }
+      const wbOpt = (input == null ? void 0 : input.worldbook) ?? { mode: "current" };
+      if (wbOpt.mode === "disable") {
+        skipWIAN = true;
+      } else if (wbOpt.mode === "inject") {
+        if (!wbOpt.worldBook)
+          throw new Error("worldbook.mode=inject requires worldbook.worldBook");
+        const snapshot = (_a = ctx.chatMetadata) == null ? void 0 : _a.world_info;
+        if (!ctx.chatMetadata)
+          throw new Error("chatMetadata not available in context");
+        ctx.chatMetadata.world_info = worldBookToStWorldInfo(wbOpt.worldBook);
+        restorers.push(() => {
+          ctx.chatMetadata.world_info = snapshot;
+        });
+      }
+      return await new Promise((resolve, reject) => {
+        let done = false;
+        let timer;
+        const cleanup = () => {
+          if (timer)
+            clearTimeout(timer);
+          if (stream)
+            eventSource.removeListener(event_types.STREAM_TOKEN_RECEIVED, onStreamToken);
+          if (hasExtraBlocks)
+            eventSource.removeListener(event_types.CHAT_COMPLETION_PROMPT_READY, onChatPromptReady);
+        };
+        const finish = (err, text) => {
+          if (done)
+            return;
+          done = true;
+          cleanup();
+          if (err)
+            return reject(err);
+          const outText = String(text ?? "");
+          const finalText = outText.trim() ? outText : streamedAny ? streamedText : outText;
+          if (stream && onToken && !streamedAny && finalText) {
+            onToken(finalText, finalText);
+          }
+          const out = {
+            timestamp: Date.now(),
+            characterId: chid,
+            text: finalText,
+            from: "inChat",
+            ...includeRequest && request ? { request } : {}
+          };
+          return resolve(out);
+        };
+        if (stream)
+          eventSource.on(event_types.STREAM_TOKEN_RECEIVED, onStreamToken);
+        if (hasExtraBlocks)
+          eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, onChatPromptReady);
+        timer = setTimeout(() => {
+          finish(new Error(`Timeout: generation did not finish within ${timeoutMs}ms.`));
+        }, timeoutMs);
+        try {
+          Promise.resolve(stGenerate("normal", { force_chid: chid, skipWIAN }, false)).then((res) => {
+            if (typeof extractMessageFromData === "function") {
+              try {
+                return finish(void 0, String(extractMessageFromData(res, api) ?? ""));
+              } catch {
+                return finish(void 0, String(res ?? ""));
+              }
+            }
+            return finish(void 0, String(res ?? ""));
+          }).catch((e) => finish(e));
         } catch (e) {
           finish(e);
         }
@@ -7030,9 +7241,13 @@ var __publicField = (obj, key, value) => {
     name: "buildRequest",
     handler: buildRequest
   };
+  const generateEndpoint = {
+    name: "generate",
+    handler: generate
+  };
   const promptModuleDefinition = {
     namespace: "prompt",
-    endpoints: [getEndpoint$5, buildRequestEndpoint]
+    endpoints: [getEndpoint$5, buildRequestEndpoint, generateEndpoint]
   };
   function registerPromptApis(registry2) {
     registry2.registerModule(promptModuleDefinition);
@@ -7196,7 +7411,7 @@ var __publicField = (obj, key, value) => {
       return "#extensions_settings2";
     return target || "#extensions_settings2";
   }
-  async function waitAppReady() {
+  async function waitAppReady$1() {
     var _a, _b;
     const ctx = (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
     if (!ctx)
@@ -7230,7 +7445,7 @@ var __publicField = (obj, key, value) => {
     }
   }
   async function registerSettingsPanel(input) {
-    await waitAppReady();
+    await waitAppReady$1();
     const targetSelector = resolveTargetSelector(input.target);
     const targetEl = document.querySelector(targetSelector);
     if (!targetEl)
@@ -7289,7 +7504,7 @@ var __publicField = (obj, key, value) => {
     return { panels: [] };
   }
   async function registerExtensionsMenuItem(input) {
-    await waitAppReady();
+    await waitAppReady$1();
     const menu = document.getElementById("extensionsMenu");
     if (!menu)
       throw new Error("Extensions menu (#extensionsMenu) not found");
@@ -7325,7 +7540,7 @@ var __publicField = (obj, key, value) => {
     return { itemId: item.id };
   }
   async function registerOptionsMenuItem(input) {
-    await waitAppReady();
+    await waitAppReady$1();
     let menu = document.querySelector("#options_button + .options-content");
     if (!menu) {
       menu = document.querySelector('.options-content[role="list"]');
@@ -7387,7 +7602,7 @@ var __publicField = (obj, key, value) => {
   }
   const topDrawers = /* @__PURE__ */ new Map();
   async function registerTopSettingsDrawer(input) {
-    await waitAppReady();
+    await waitAppReady$1();
     const topHolder = document.getElementById("top-settings-holder");
     if (!topHolder) {
       throw new Error("Target not found: #top-settings-holder");
@@ -7548,6 +7763,379 @@ var __publicField = (obj, key, value) => {
   };
   function registerUiApis(registry2) {
     registry2.registerModule(uiModuleDefinition);
+  }
+  const installs = /* @__PURE__ */ new Map();
+  function resolveCtx() {
+    var _a, _b;
+    return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
+  }
+  async function waitAppReady() {
+    const ctx = resolveCtx();
+    if (!ctx)
+      return;
+    const { eventSource, event_types } = ctx;
+    if (document.getElementById("send_but") || document.getElementById("send_textarea")) {
+      return;
+    }
+    return await new Promise((resolve) => {
+      const done = () => {
+        eventSource.removeListener(event_types.APP_READY, done);
+        resolve();
+      };
+      eventSource.on(event_types.APP_READY, done);
+      setTimeout(done, 5e3);
+    });
+  }
+  function defaults(base, next) {
+    return { ...base, ...next ?? {} };
+  }
+  function makeStEventName(prefix, suffix) {
+    return `${prefix}:${suffix}`;
+  }
+  function makeDomEventName(prefix, suffix) {
+    return `${prefix}:${suffix}`;
+  }
+  function emitBoth(rt, suffix, payload) {
+    const ctx = resolveCtx();
+    const eventSource = ctx == null ? void 0 : ctx.eventSource;
+    const stPrefix = rt.broadcast.stPrefix;
+    const domPrefix = rt.broadcast.domPrefix;
+    const target = rt.broadcast.target;
+    if ((target === "st" || target === "both") && (eventSource == null ? void 0 : eventSource.emit)) {
+      void eventSource.emit(makeStEventName(stPrefix, suffix), payload);
+    }
+    if (target === "dom" || target === "both") {
+      try {
+        if (typeof window.CustomEvent === "function") {
+          window.dispatchEvent(new CustomEvent(makeDomEventName(domPrefix, suffix), { detail: payload }));
+        }
+      } catch {
+      }
+    }
+  }
+  function shouldBypass(rt, target) {
+    if (rt.bypassOnce.get("any")) {
+      rt.bypassOnce.delete("any");
+      return true;
+    }
+    if (rt.bypassOnce.get(target)) {
+      rt.bypassOnce.delete(target);
+      return true;
+    }
+    return false;
+  }
+  function shouldBlock(rt, target) {
+    const b = rt.intercept.block;
+    if (typeof b === "boolean")
+      return b;
+    if (b && typeof b === "object") {
+      const v = b[target];
+      return v === void 0 ? true : Boolean(v);
+    }
+    return true;
+  }
+  function stopEvent(e) {
+    var _a;
+    try {
+      e.preventDefault();
+    } catch {
+    }
+    (_a = e.stopImmediatePropagation) == null ? void 0 : _a.call(e);
+    e.stopPropagation();
+  }
+  function isEnterSendEnabled(ctx) {
+    const raw = ctx == null ? void 0 : ctx.shouldSendOnEnter;
+    if (typeof raw === "function") {
+      try {
+        return Boolean(raw());
+      } catch {
+        return false;
+      }
+    }
+    return Boolean(raw);
+  }
+  function getStopButtonEl() {
+    return document.getElementById("mes_stop") ?? document.querySelector(".mes_stop");
+  }
+  function computeStopVisible(el) {
+    if (!el)
+      return { visible: false };
+    try {
+      const display = window.getComputedStyle(el).display;
+      return { visible: display !== "none", display };
+    } catch {
+      return { visible: true };
+    }
+  }
+  async function install(input) {
+    const id = String((input == null ? void 0 : input.id) || "").trim();
+    if (!id)
+      throw new Error("hooks.install requires a non-empty id");
+    if (installs.has(id))
+      throw new Error(`hooks.install duplicate id: ${id}`);
+    await waitAppReady();
+    const rt = {
+      id,
+      broadcast: defaults(
+        { target: "both", stPrefix: "st_api_wrapper", domPrefix: "st-api-wrapper" },
+        input == null ? void 0 : input.broadcast
+      ),
+      intercept: defaults(
+        {
+          targets: ["sendButton", "sendEnter", "regenerate", "continue", "impersonate", "stopButton"],
+          block: true,
+          onlyWhenSendOnEnter: true
+        },
+        input == null ? void 0 : input.intercept
+      ),
+      observe: defaults(
+        {
+          targets: ["generationLifecycle", "streamTokens", "stopButtonVisibility"],
+          blockGenerationOnStart: false,
+          emitInitialStopButtonState: true
+        },
+        input == null ? void 0 : input.observe
+      ),
+      bypassOnce: /* @__PURE__ */ new Map(),
+      streamFull: "",
+      lastStopVisible: void 0,
+      cleanup: () => {
+      }
+    };
+    const disposers = [];
+    const interceptTargets = new Set(rt.intercept.targets ?? []);
+    const emitIntercept = (payload) => {
+      emitBoth(rt, "intercept", payload);
+    };
+    const onDocClickCapture = (e) => {
+      if (!rt.intercept.block && !rt.broadcast.target)
+        return;
+      const t = e.target;
+      if (!t || !t.closest)
+        return;
+      const hit = (selector, target) => {
+        if (!interceptTargets.has(target))
+          return false;
+        const el = t.closest(selector);
+        if (!el)
+          return false;
+        if (shouldBypass(rt, target))
+          return false;
+        const blocked = shouldBlock(rt, target);
+        if (blocked)
+          stopEvent(e);
+        emitIntercept({
+          id: rt.id,
+          timestamp: Date.now(),
+          source: "click",
+          target,
+          selector,
+          blocked
+        });
+        return true;
+      };
+      if (hit("#send_but", "sendButton"))
+        return;
+      if (hit("#options_button", "optionsButton"))
+        return;
+      if (hit("#extensionsMenuButton", "extensionsMenuButton"))
+        return;
+      if (hit("#option_regenerate", "regenerate"))
+        return;
+      if (hit("#option_continue, #mes_continue", "continue"))
+        return;
+      if (hit("#mes_impersonate", "impersonate"))
+        return;
+      if (hit("#mes_stop, .mes_stop", "stopButton"))
+        return;
+    };
+    const onDocKeydownCapture = (e) => {
+      if (!interceptTargets.has("sendEnter"))
+        return;
+      if (e.key !== "Enter")
+        return;
+      if (e.isComposing || e.keyCode === 229)
+        return;
+      if (e.shiftKey || e.altKey || e.metaKey || e.ctrlKey)
+        return;
+      const targetEl = e.target;
+      if (!targetEl)
+        return;
+      if (!(targetEl instanceof HTMLTextAreaElement))
+        return;
+      if (targetEl.id !== "send_textarea")
+        return;
+      const ctx2 = resolveCtx();
+      if (rt.intercept.onlyWhenSendOnEnter && !isEnterSendEnabled(ctx2))
+        return;
+      if (shouldBypass(rt, "sendEnter"))
+        return;
+      const blocked = shouldBlock(rt, "sendEnter");
+      if (blocked)
+        stopEvent(e);
+      emitIntercept({
+        id: rt.id,
+        timestamp: Date.now(),
+        source: "keydown",
+        target: "sendEnter",
+        selector: "#send_textarea",
+        blocked
+      });
+    };
+    document.addEventListener("click", onDocClickCapture, true);
+    disposers.push(() => document.removeEventListener("click", onDocClickCapture, true));
+    document.addEventListener("keydown", onDocKeydownCapture, true);
+    disposers.push(() => document.removeEventListener("keydown", onDocKeydownCapture, true));
+    const ctx = resolveCtx();
+    const eventSource = ctx == null ? void 0 : ctx.eventSource;
+    const event_types = ctx == null ? void 0 : ctx.event_types;
+    const observeTargets = new Set(rt.observe.targets ?? []);
+    if ((eventSource == null ? void 0 : eventSource.on) && event_types) {
+      const onStarted = (type, options, dryRun) => {
+        var _a;
+        rt.streamFull = "";
+        const payload = {
+          id: rt.id,
+          timestamp: Date.now(),
+          generationType: String(type ?? ""),
+          options,
+          dryRun
+        };
+        emitBoth(rt, "generation.started", payload);
+        if (rt.observe.blockGenerationOnStart && dryRun !== true) {
+          try {
+            (_a = ctx == null ? void 0 : ctx.stopGeneration) == null ? void 0 : _a.call(ctx);
+          } catch {
+          }
+        }
+      };
+      const onStopped = () => {
+        const payload = {
+          id: rt.id,
+          timestamp: Date.now()
+        };
+        emitBoth(rt, "generation.stopped", payload);
+      };
+      const onEnded = (chatLength) => {
+        const payload = {
+          id: rt.id,
+          timestamp: Date.now(),
+          chatLength: typeof chatLength === "number" ? chatLength : void 0
+        };
+        emitBoth(rt, "generation.ended", payload);
+      };
+      const onStreamToken = (delta) => {
+        const d = typeof delta === "string" ? delta : String(delta ?? "");
+        if (!d)
+          return;
+        rt.streamFull += d;
+        const payload = {
+          id: rt.id,
+          timestamp: Date.now(),
+          delta: d,
+          full: rt.streamFull
+        };
+        emitBoth(rt, "generation.streamToken", payload);
+      };
+      if (observeTargets.has("generationLifecycle")) {
+        eventSource.on(event_types.GENERATION_STARTED, onStarted);
+        eventSource.on(event_types.GENERATION_STOPPED, onStopped);
+        eventSource.on(event_types.GENERATION_ENDED, onEnded);
+        disposers.push(() => eventSource.removeListener(event_types.GENERATION_STARTED, onStarted));
+        disposers.push(() => eventSource.removeListener(event_types.GENERATION_STOPPED, onStopped));
+        disposers.push(() => eventSource.removeListener(event_types.GENERATION_ENDED, onEnded));
+      }
+      if (observeTargets.has("streamTokens")) {
+        eventSource.on(event_types.STREAM_TOKEN_RECEIVED, onStreamToken);
+        disposers.push(() => eventSource.removeListener(event_types.STREAM_TOKEN_RECEIVED, onStreamToken));
+      }
+    }
+    if (observeTargets.has("stopButtonVisibility")) {
+      const emitStopVisible = (visible, display) => {
+        const payload = {
+          id: rt.id,
+          timestamp: Date.now(),
+          visible,
+          display
+        };
+        emitBoth(rt, visible ? "ui.stopButtonShown" : "ui.stopButtonHidden", payload);
+      };
+      const check = () => {
+        const el = getStopButtonEl();
+        const { visible, display } = computeStopVisible(el);
+        if (rt.lastStopVisible === void 0) {
+          rt.lastStopVisible = visible;
+          if (rt.observe.emitInitialStopButtonState) {
+            emitStopVisible(visible, display);
+          }
+          return;
+        }
+        if (visible !== rt.lastStopVisible) {
+          rt.lastStopVisible = visible;
+          emitStopVisible(visible, display);
+        }
+      };
+      check();
+      const obs = new MutationObserver(() => check());
+      const root = document.body ?? document.documentElement;
+      obs.observe(root, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ["style", "class"]
+      });
+      rt.stopObserver = obs;
+      disposers.push(() => obs.disconnect());
+    }
+    rt.cleanup = () => {
+      for (let i = disposers.length - 1; i >= 0; i--) {
+        try {
+          disposers[i]();
+        } catch {
+        }
+      }
+    };
+    installs.set(id, rt);
+    return { id, ok: true };
+  }
+  async function uninstall(input) {
+    const id = String((input == null ? void 0 : input.id) || "").trim();
+    if (!id)
+      return { ok: false };
+    const rt = installs.get(id);
+    if (!rt)
+      return { ok: false };
+    rt.cleanup();
+    installs.delete(id);
+    return { ok: true };
+  }
+  async function bypassOnce(input) {
+    const id = String((input == null ? void 0 : input.id) || "").trim();
+    const target = (input == null ? void 0 : input.target) ?? "any";
+    const rt = installs.get(id);
+    if (!rt)
+      return { ok: false };
+    rt.bypassOnce.set(target, true);
+    return { ok: true };
+  }
+  const installEndpoint = {
+    name: "install",
+    handler: install
+  };
+  const uninstallEndpoint = {
+    name: "uninstall",
+    handler: uninstall
+  };
+  const bypassOnceEndpoint = {
+    name: "bypassOnce",
+    handler: bypassOnce
+  };
+  const hooksModuleDefinition = {
+    namespace: "hooks",
+    endpoints: [installEndpoint, uninstallEndpoint, bypassOnceEndpoint]
+  };
+  function registerHooksApis(registry2) {
+    registry2.registerModule(hooksModuleDefinition);
   }
   async function list$4(input) {
     const ctx = window.SillyTavern.getContext();
@@ -9475,6 +10063,7 @@ var __publicField = (obj, key, value) => {
     registerPromptApis(registry2);
     registerFileApis(registry2);
     registerUiApis(registry2);
+    registerHooksApis(registry2);
     registerChatHistoryApis(registry2);
     registerPresetApis(registry2);
     registerWorldBookApis(registry2);

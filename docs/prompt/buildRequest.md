@@ -65,7 +65,6 @@
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| mainApi | string | 当前酒馆 mainApi。 |
 | timestamp | number | 时间戳。 |
 | characterId | number? | 使用的角色 ID。 |
 | chatCompletionMessages | object[]? | Chat Completions：最终 `messages[]`。 |
@@ -80,7 +79,6 @@
 
 ```typescript
 const res = await ST_API.prompt.buildRequest();
-console.log(res.mainApi);
 console.log(res.chatCompletionMessages ?? res.textPrompt);
 ```
 

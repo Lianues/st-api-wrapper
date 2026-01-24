@@ -147,7 +147,6 @@ export type ChatCompletionMessage = {
 };
 
 export interface BuildRequestOutput {
-  mainApi: string;
   timestamp: number;
   characterId?: number;
 
@@ -159,4 +158,51 @@ export interface BuildRequestOutput {
 
   /** 可选：与酒馆后端一致的 payload（generate_data） */
   generateData?: any;
+}
+
+export type PromptGenerateFrom = 'inChat' | 'background';
+
+export type PromptStreamTokenCallback = (delta: string, full: string) => void;
+
+export interface GenerateInput extends BuildRequestInput {
+  /**
+   * 是否将生成结果写入当前聊天。
+   * - true: 走酒馆原生生成流程（会影响聊天与 UI）
+   * - false: 后台生成，仅返回文本
+   * @default false
+   */
+  writeToChat?: boolean;
+
+  /**
+   * 是否启用 token 流式回调。
+   * - writeToChat=true 时：通过监听 STREAM_TOKEN_RECEIVED 提供流式
+   * - writeToChat=false 时：仅“尽力而为”（通常只会在结束时回调一次 full 文本）
+   * @default false
+   */
+  stream?: boolean;
+
+  /**
+   * token 流式回调（delta 为本次新增片段，full 为当前累计内容）
+   */
+  onToken?: PromptStreamTokenCallback;
+
+  /**
+   * 是否在输出中附带本次使用的请求构造结果（messages/prompt/generateData）
+   * @default false
+   */
+  includeRequest?: boolean;
+}
+
+export interface GenerateOutput {
+  timestamp: number;
+  characterId?: number;
+
+  /** 最终生成文本 */
+  text: string;
+
+  /** 生成来源：写入聊天 or 后台 */
+  from: PromptGenerateFrom;
+
+  /** 可选：本次使用的请求构造结果（便于调试） */
+  request?: BuildRequestOutput;
 }

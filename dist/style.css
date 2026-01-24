@@ -1,52 +1,52 @@
 
-.st-api-wrapper-panel[data-v-db366884] {
+.st-api-wrapper-panel[data-v-5dcd21f5] {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.actions[data-v-db366884] {
+.actions[data-v-5dcd21f5] {
   gap: 8px;
   flex-wrap: wrap;
 }
-.status[data-v-db366884] {
+.status[data-v-5dcd21f5] {
   opacity: 0.95;
 }
-.details[data-v-db366884] {
+.details[data-v-5dcd21f5] {
   border-top: 1px solid var(--SmartThemeBorderColor);
   padding-top: 10px;
 }
-.messages-list[data-v-db366884] {
+.messages-list[data-v-5dcd21f5] {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: 10px;
 }
-.message-item[data-v-db366884] {
+.message-item[data-v-5dcd21f5] {
   padding: 8px;
   border-radius: 6px;
   border-left: 4px solid #444;
   background: rgba(255,255,255,0.05);
 }
-.message-item.system[data-v-db366884] { border-color: #ff4757;
+.message-item.system[data-v-5dcd21f5] { border-color: #ff4757;
 }
-.message-item.user[data-v-db366884] { border-color: #2ed573;
+.message-item.user[data-v-5dcd21f5] { border-color: #2ed573;
 }
-.message-item.assistant[data-v-db366884] { border-color: #1e90ff;
+.message-item.assistant[data-v-5dcd21f5] { border-color: #1e90ff;
 }
-.role-tag[data-v-db366884] {
+.role-tag[data-v-5dcd21f5] {
   font-size: 0.8em;
   font-weight: bold;
   opacity: 0.7;
   display: block;
   margin-bottom: 5px;
 }
-pre[data-v-db366884] {
+pre[data-v-5dcd21f5] {
   white-space: pre-wrap;
   word-wrap: break-word;
   margin: 0;
   font-family: monospace;
 }
-.error[data-v-db366884] {
+.error[data-v-5dcd21f5] {
   margin-top: 6px;
   color: #ff6b81;
 }

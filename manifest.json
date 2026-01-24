@@ -1,9 +1,10 @@
 {
-    "display_name": "API Wrapper",
+    "display_name": "ST API Wrapper",
     "loading_order": 10,
     "js": "dist/index.iife.js",
     "css": "dist/style.css",
     "author": "Limerence",
-    "version": "1.0.0",
-    "description": "Standardized API Wrapper for SillyTavern features."
+    "version": "1.0.1",
+    "description": "Standardized API Wrapper for SillyTavern features.",
+    "homePage": "https://github.com/Lianues/st-api-wrapper"
 }
