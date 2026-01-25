@@ -11,7 +11,7 @@ import type {
 import { normalizeChatMessages } from '../../core/utils/messages';
 import { chatMessagesToStChat } from '../../core/utils/chat';
 import { applyPresetPatchToChatCompletionSettings, applyPresetToChatCompletionSettings, detectPromptOrderCharacterId } from '../../core/utils/preset';
-import { worldBookToStWorldInfo } from '../../core/utils/worldbook';
+import { worldBookToStWorldInfo } from '../../core/utils/worldBook';
 
 function replaceArrayContents<T>(arr: T[], next: T[]) {
   arr.length = 0;
@@ -195,7 +195,7 @@ async function applyWorldbookOverrides(ctx: any, wbOpt: any, restorers: Array<()
   const injectBook = wbOpt?.inject;
   const replaceBook = wbOpt?.replace;
   if (injectBook && replaceBook) {
-    throw new Error('worldbook.inject and worldbook.replace are mutually exclusive');
+    throw new Error('worldBook.inject and worldBook.replace are mutually exclusive');
   }
 
   if (!injectBook && !replaceBook) return false;
@@ -371,8 +371,8 @@ export async function buildRequest(input: BuildRequestInput): Promise<BuildReque
       }
     }
 
-    // --- worldbook overrides ---
-    skipWIAN = await applyWorldbookOverrides(ctx, input?.worldbook, restorers);
+    // --- worldBook overrides ---
+    skipWIAN = await applyWorldbookOverrides(ctx, input?.worldBook, restorers);
 
     // --- chat history overrides ---
     // - chatHistory.replace: replace whole history for this build
@@ -693,8 +693,8 @@ export async function generate(input: GenerateInput): Promise<GenerateOutput> {
       }
     }
 
-    // --- worldbook overrides ---
-    skipWIAN = await applyWorldbookOverrides(ctx, input?.worldbook, restorers);
+    // --- worldBook overrides ---
+    skipWIAN = await applyWorldbookOverrides(ctx, input?.worldBook, restorers);
 
     return await new Promise<GenerateOutput>((resolve, reject) => {
       let done = false;

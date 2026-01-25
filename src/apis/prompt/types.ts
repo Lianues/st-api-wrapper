@@ -1,7 +1,7 @@
 import type { PromptResult } from '../../types';
 import type { ChatMessage } from '../../types';
 import type { PresetInfo } from '../preset/types';
-import type { WorldBook } from '../worldbook/types';
+import type { WorldBook } from '../worldBook/types';
 
 export interface GetPromptInput {
   /**
@@ -149,7 +149,7 @@ export interface BuildRequestInput {
    * 世界书策略：当前 / 禁用 / 注入(合并) / 替换
    * @default { mode: 'current' }
    */
-  worldbook?: RequestWorldBookOption;
+  worldBook?: RequestWorldBookOption;
 
   /**
    * 聊天记录使用策略：当前 / 注入

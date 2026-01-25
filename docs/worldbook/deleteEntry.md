@@ -1,4 +1,4 @@
-# worldbook.deleteEntry
+# worldBook.deleteEntry
 
 ## 描述
 
@@ -25,7 +25,7 @@
 ### 代码示例 (TypeScript)
 
 ```typescript
-const result = await ST_API.worldbook.deleteEntry({
+const result = await ST_API.worldBook.deleteEntry({
   name: "参考用main_world",
   index: 0
 });

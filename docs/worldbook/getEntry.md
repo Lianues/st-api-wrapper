@@ -1,4 +1,4 @@
-# worldbook.getEntry
+# worldBook.getEntry
 
 ## 描述
 
@@ -14,7 +14,7 @@
 
 ### WorldBookEntry 结构
 
-详见 [worldbook.get](./get.md) 或 [worldbook.createEntry](./createEntry.md) 中的字段说明。
+详见 [worldBook.get](./get.md) 或 [worldBook.createEntry](./createEntry.md) 中的字段说明。
 
 ---
 
@@ -23,7 +23,7 @@
 ### 代码示例 (TypeScript)
 
 ```typescript
-const result = await ST_API.worldbook.getEntry({ 
+const result = await ST_API.worldBook.getEntry({ 
   name: "参考用main_world", 
   index: 0 
 });

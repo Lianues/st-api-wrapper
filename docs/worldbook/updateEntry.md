@@ -1,4 +1,4 @@
-# worldbook.updateEntry
+# worldBook.updateEntry
 
 ## 描述
 
@@ -15,7 +15,7 @@
 
 ### Position 与 Role 映射说明
 
-详见 [worldbook.get](./get.md) 或 [worldbook.createEntry](./createEntry.md) 中的表格。
+详见 [worldBook.get](./get.md) 或 [worldBook.createEntry](./createEntry.md) 中的表格。
 
 ## 输出
 
@@ -31,7 +31,7 @@
 ### 代码示例 (TypeScript)
 
 ```typescript
-const result = await ST_API.worldbook.updateEntry({
+const result = await ST_API.worldBook.updateEntry({
   name: "参考用main_world",
   index: 0,
   patch: {

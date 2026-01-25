@@ -76,8 +76,8 @@ const deleteEntryEndpoint: EndpointDefinition<DeleteWorldBookEntryInput, DeleteW
   handler: deleteWorldBookEntry,
 };
 
-export const worldbookModuleDefinition: ApiModuleDefinition = {
-  namespace: 'worldbook',
+export const worldBookModuleDefinition: ApiModuleDefinition = {
+  namespace: 'worldBook',
   endpoints: [
     listWorldBooksEndpoint,
     getWorldBookEndpoint,

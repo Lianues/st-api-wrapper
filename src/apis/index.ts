@@ -5,7 +5,7 @@ import { registerUiApis } from './ui';
 import { registerHooksApis } from './hooks';
 import { registerChatHistoryApis } from './chatHistory';
 import { registerPresetApis } from './preset';
-import { registerWorldBookApis } from './worldbook';
+import { registerWorldBookApis } from './worldBook';
 import { registerVariablesApis } from './variables';
 import { registerRegexScriptApis } from './regexScript';
 import { registerCharacterApis } from './character';

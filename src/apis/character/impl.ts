@@ -10,7 +10,7 @@ import type {
   UpdateCharacterOutput,
 } from './types';
 import { fromStRegex } from '../regexScript/utils';
-import { fromStBook } from '../worldbook/impl';
+import { fromStBook } from '../worldBook/impl';
 
 /**
  * 获取 SillyTavern 的上下文

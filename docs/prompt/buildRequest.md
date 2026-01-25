@@ -24,7 +24,7 @@
 | timeoutMs | number | 8000 | 超时（毫秒）。 |
 | forceCharacterId | number | - | 可选：强制指定角色 ID。 |
 | preset | { mode?, inject?, replace? } | `{mode:'current'}` | 预设策略：`inject` 为合并（同名 identifier 覆盖），`replace` 为整段替换。`inject` 与 `replace` 互斥。 |
-| worldbook | { mode?, inject?, replace? } | `{mode:'current'}` | 世界书策略：`inject` 为合并（同名条目 comment 覆盖），`replace` 为整本替换（结束回滚，不落盘）。`disable` 会设置 `skipWIAN=true`（同时跳过世界书与作者注释）。`inject` 与 `replace` 互斥。 |
+| worldBook | { mode?, inject?, replace? } | `{mode:'current'}` | 世界书策略：`inject` 为合并（同名条目 comment 覆盖），`replace` 为整本替换（结束回滚，不落盘）。`disable` 会设置 `skipWIAN=true`（同时跳过世界书与作者注释）。`inject` 与 `replace` 互斥。 |
 | chatHistory | { replace?, inject? } | - | 聊天记录：`replace` 负责整段替换；`inject` 负责按 depth/order 注入历史块。 |
 | extraBlocks | ExtraMessageBlock[] | - | 额外消息段插入（仅对 Chat Completions 生效）。 |
 | includeGenerateData | boolean | false | 是否尝试构造更接近后端的 payload。openai 会调用 `/scripts/openai.js` 的 `createGenerationParameters`。 |
@@ -39,7 +39,7 @@
 > 说明：`inject` 与 `replace` 互斥。
 > 另外：`PresetInfo` 支持 `utilityPrompts`（例如 `newChatPrompt`、`worldInfoFormat` 等），可以随 `inject/replace` 一并传入并生效；请放在 `preset.utilityPrompts` 中，不要混在 `preset.other` 里。
 
-### worldbook
+### worldBook
 - `mode`：`current`（默认）或 `disable`。
   - `disable` 会设置 `skipWIAN=true`（跳过世界书与作者注释）。
   - 若 `mode='disable'`，则会忽略 `inject/replace`。
@@ -107,17 +107,17 @@ console.log(res.chatCompletionMessages);
 
 ```typescript
 const res = await ST_API.prompt.buildRequest({
-  worldbook: { mode: 'disable' },
+  worldBook: { mode: 'disable' },
 });
 ```
 
-### 4）注入世界书（作为 chat worldbook）
+### 4）注入世界书（作为 chat worldBook）
 
 ```typescript
-const book = await ST_API.worldbook.get({ name: 'Current Chat', scope: 'chat' });
+const book = await ST_API.worldBook.get({ name: 'Current Chat', scope: 'chat' });
 
 const res = await ST_API.prompt.buildRequest({
-  worldbook: { replace: book.worldBook },
+  worldBook: { replace: book.worldBook },
 });
 ```
 
@@ -178,7 +178,7 @@ console.log(res.generateData);
 
 ---
 
-## 调试 / 验证：worldbook.replace / worldbook.inject 是否生效
+## 调试 / 验证：worldBook.replace / worldBook.inject 是否生效
 
 前置条件：
 - 已在酒馆里启用 `st-api-wrapper` 扩展，并能在控制台访问 `window.ST_API`
@@ -197,11 +197,11 @@ console.log(res.generateData);
 
   // 0) 确保世界书存在（已存在会报错，忽略即可）
   try {
-    await ST_API.worldbook.create({ name: bookName, scope });
+    await ST_API.worldBook.create({ name: bookName, scope });
   } catch {}
 
   // 1) 创建一个一定会命中的 keyword 条目（key=你好）
-  const created = await ST_API.worldbook.createEntry({
+  const created = await ST_API.worldBook.createEntry({
     name: bookName,
     scope,
     entry: {
@@ -211,13 +211,13 @@ console.log(res.generateData);
       enabled: true,
       position: "beforeChar",
       order: 0,
-      content: "【WF_DEBUG_KEYWORD】如果你能在 messages 里看到我，说明 worldbook 注入生效。",
+      content: "【WF_DEBUG_KEYWORD】如果你能在 messages 里看到我，说明 worldBook 注入生效。",
     },
   });
   const idx = created?.entry?.index;
 
   // 2) buildRequest：注入世界书并打印 messages
-  const wb = (await ST_API.worldbook.get({ name: bookName, scope })).worldBook;
+  const wb = (await ST_API.worldBook.get({ name: bookName, scope })).worldBook;
 
   const br = await ST_API.prompt.buildRequest({
     // 用固定聊天保证关键词命中（不影响真实聊天，结束自动回滚）
@@ -229,7 +229,7 @@ console.log(res.generateData);
     },
 
     // 你也可以把 replace 改成 inject（语义：合并到当前 chat lorebook）
-    worldbook: { replace: wb },
+    worldBook: { replace: wb },
   });
 
   console.log("messages =", br.chatCompletionMessages);
@@ -240,7 +240,7 @@ console.log(res.generateData);
 
   // 3) 清理：删除临时条目
   if (typeof idx === "number") {
-    await ST_API.worldbook.deleteEntry({ name: bookName, scope, index: idx });
+    await ST_API.worldBook.deleteEntry({ name: bookName, scope, index: idx });
   }
 })();
 ```

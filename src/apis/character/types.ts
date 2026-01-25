@@ -1,5 +1,5 @@
 import type { RegexScriptData } from '../regexScript/types';
-import type { WorldBook } from '../worldbook/types';
+import type { WorldBook } from '../worldBook/types';
 
 export interface CharacterCard {
   /**

@@ -1,4 +1,4 @@
-# worldbook.create
+# worldBook.create
 
 ## 描述
 
@@ -28,7 +28,7 @@
 #### 创建带有初始条目的世界书
 
 ```typescript
-const result = await ST_API.worldbook.create({
+const result = await ST_API.worldBook.create({
   name: "My_New_World",
   scope: "global",
   entries: [
@@ -62,7 +62,7 @@ if (result.ok) {
 #### 创建空世界书
 
 ```typescript
-const result = await ST_API.worldbook.create({
+const result = await ST_API.worldBook.create({
   name: "Empty_Book",
   scope: "global"
 });

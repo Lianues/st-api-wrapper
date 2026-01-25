@@ -1,4 +1,4 @@
-# worldbook.list
+# worldBook.list
 
 ## 描述
 
@@ -32,7 +32,7 @@
 
 ```typescript
 // 列出所有世界书
-const result = await ST_API.worldbook.list();
+const result = await ST_API.worldBook.list();
 console.log(`总计找到 ${result.worldBooks.length} 本书`);
 
 // 过滤出全局书

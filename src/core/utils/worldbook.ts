@@ -1,4 +1,4 @@
-import type { WorldBook, WorldBookEntry, WorldBookEntrySelectiveLogic, WorldBookEntryRole } from '../../apis/worldbook/types';
+import type { WorldBook, WorldBookEntry, WorldBookEntrySelectiveLogic, WorldBookEntryRole } from '../../apis/worldBook/types';
 
 const reversePositionMap: Record<string, number> = {
   beforeChar: 0,

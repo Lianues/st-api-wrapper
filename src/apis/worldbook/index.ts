@@ -1,6 +1,6 @@
 import type { ApiRegistry } from '../../core/registry';
-import { worldbookModuleDefinition } from './definition';
+import { worldBookModuleDefinition } from './definition';
 
 export function registerWorldBookApis(registry: ApiRegistry) {
-  registry.registerModule(worldbookModuleDefinition);
+  registry.registerModule(worldBookModuleDefinition);
 }

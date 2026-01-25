@@ -1,4 +1,4 @@
-# worldbook.get
+# worldBook.get
 
 ## 描述
 
@@ -76,7 +76,7 @@
 
 ```typescript
 // 获取名为 "参考用main_world" 的世界书
-const result = await ST_API.worldbook.get({ name: "参考用main_world" });
+const result = await ST_API.worldBook.get({ name: "参考用main_world" });
 console.log(`找到书籍的作用域: ${result.scope}`);
 console.log(`包含条目数量: ${result.worldBook.entries.length}`);
 

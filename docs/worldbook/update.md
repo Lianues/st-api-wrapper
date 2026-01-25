@@ -1,4 +1,4 @@
-# worldbook.update
+# worldBook.update
 
 ## 描述
 
@@ -29,7 +29,7 @@
 #### 仅覆盖条目
 
 ```typescript
-const result = await ST_API.worldbook.update({
+const result = await ST_API.worldBook.update({
   name: "参考用main_world",
   entries: [
     {
@@ -56,7 +56,7 @@ const result = await ST_API.worldbook.update({
 #### 仅重命名
 
 ```typescript
-await ST_API.worldbook.update({
+await ST_API.worldBook.update({
   name: "Old_Name",
   newName: "New_Beautiful_Name"
 });

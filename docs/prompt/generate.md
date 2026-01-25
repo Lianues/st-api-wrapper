@@ -15,7 +15,7 @@
 
 ## 输入（GenerateInput）
 
-> `GenerateInput` 继承 `BuildRequestInput`，因此也支持 `preset/worldbook/extraBlocks` 等（但在 writeToChat=true 时有约束）。
+> `GenerateInput` 继承 `BuildRequestInput`，因此也支持 `preset/worldBook/extraBlocks` 等（但在 writeToChat=true 时有约束）。
 
 | 字段 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
@@ -26,7 +26,7 @@
 | onToken | `(delta, full) => void` | - | 流式 token 回调（delta 为新增片段，full 为累计文本）。 |
 | includeRequest | boolean | false | 是否在输出中附带本次使用的请求构造结果（便于调试）。 |
 | preset | 同 buildRequest | `{mode:'current'}` | 预设策略。 |
-| worldbook | 同 buildRequest | `{mode:'current'}` | 世界书策略（`disable` 会设置 `skipWIAN=true`）。 |
+| worldBook | 同 buildRequest | `{mode:'current'}` | 世界书策略（`disable` 会设置 `skipWIAN=true`）。 |
 | chatHistory | 同 buildRequest | - | **仅 writeToChat=false 时可用**。 |
 | extraBlocks | 同 buildRequest | - | 额外块插入（对 Chat Completions 生效）。 |
 

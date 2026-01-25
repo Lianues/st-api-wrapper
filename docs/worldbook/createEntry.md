@@ -1,4 +1,4 @@
-# worldbook.createEntry
+# worldBook.createEntry
 
 ## 描述
 
@@ -71,7 +71,7 @@
 #### 创建普通条目
 
 ```typescript
-const result = await ST_API.worldbook.createEntry({
+const result = await ST_API.worldBook.createEntry({
   name: "参考用main_world",
   entry: {
     name: "未来都市",
@@ -98,7 +98,7 @@ const result = await ST_API.worldbook.createEntry({
 #### 创建固定深度 (@D) 条目
 
 ```typescript
-const result = await ST_API.worldbook.createEntry({
+const result = await ST_API.worldBook.createEntry({
   name: "参考用main_world",
   entry: {
     name: "系统规则",
