@@ -10,9 +10,12 @@
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | name | string | 新预设的名称。 |
-| apiSetting | object | (可选) 采样参数修改（如温度、Top P 等）。 |
+| other | object | (可选) 采样参数修改（如温度、Top P 等）。 |
+| utilityPrompts | UtilityPrompts | (可选) Utility Prompts（请放这里，不要混在 `other` 里）。 |
 | prompts | PromptInfo[] | (可选) Prompt 列表修改。如果提供，将替换原有的所有 Prompt。 |
-| regexScripts | RegexScriptData[] | (可选) 预设绑定的正则脚本列表（会写入 `apiSetting.extensions.regex_scripts`）。 |
+| regexScripts | RegexScriptData[] | (可选) 预设绑定的正则脚本列表（会写入 `other.extensions.regex_scripts`）。 |
+
+> 提示：Utility Prompts（例如 `newChatPrompt`、`worldInfoFormat`、`scenarioFormat` 等）请通过 `utilityPrompts` 传入；不允许混在 `other` 里。
 
 ## 输出
 
@@ -29,7 +32,7 @@
 // 创建一个名为 "Extreme Creative" 的新预设
 await ST_API.preset.create({
   name: "Extreme Creative",
-  apiSetting: {
+  other: {
     temp: 2.0,
     top_p: 0.9
   }

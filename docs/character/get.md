@@ -10,7 +10,7 @@
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| avatarUrl | string | 是 | 角色头像文件名（通常以 `.png` 结尾），见 `character.list()` 的返回。 |
+| name | string | 是 | 角色名称。内部会自动拼接为 `name + ".png"` 作为后端 `avatar_url`；即便你传入的 name 已经包含 `.png`，也会继续追加（会变成 `xxx.png.png`），因此请只传“纯名字”。 |
 
 ## 输出
 
@@ -25,9 +25,9 @@
 ### 代码示例 (TypeScript)
 
 ```typescript
-// 先随便写一个示例头像名（实际请从 character.list() 里拿）
+// 先随便写一个示例角色名（实际请从 character.list() 里拿）
 const res = await ST_API.character.get({
-  avatarUrl: "Alice.png",
+  name: "Alice",
 });
 
 console.log("角色名:", res.character?.name);
@@ -84,6 +84,56 @@ console.log("创建时间 createDate:", res.character?.createDate);
     "chatDate": "2025-9-8 @00h 06m 01s 299ms",
     "createDate": "2025-09-08T00:06:01.299Z"
   }
+}
+```
+
+---
+
+## other 字段记录（示例）
+
+```json
+{
+  "name": "大少女乐队时代",
+  "description": "",
+  "personality": "",
+  "scenario": "",
+  "mes_example": "",
+  "creatorcomment": "",
+  "avatar": "大少女乐队时代.png",
+  "talkativeness": "0.5",
+  "fav": false,
+  "tags": [],
+  "spec": "chara_card_v3",
+  "spec_version": "3.0",
+  "data": {
+    "name": "大少女乐队时代",
+    "description": "",
+    "personality": "",
+    "scenario": "",
+    "mes_example": "",
+    "creator_notes": "",
+    "system_prompt": "",
+    "post_history_instructions": "",
+    "tags": [],
+    "creator": "",
+    "character_version": "",
+    "extensions": {
+      "talkativeness": "0.5",
+      "fav": false,
+      "world": "大少女乐队无兽耳时代",
+      "depth_prompt": {
+        "prompt": "",
+        "depth": 4,
+        "role": "system"
+      }
+    },
+    "group_only_greetings": []
+  },
+  "json_data": "xxx",
+  "date_added": 1769250972654.5657,
+  "chat_size": 49651,
+  "date_last_chat": 1769327158319.1345,
+  "data_size": 13959
 }
 ```
 

@@ -81,3 +81,74 @@ console.log("条目内容:", result.entry.content);
   }
 }
 ```
+
+---
+
+## other 字段记录（示例）
+
+```json
+{
+  "selective": true,
+  "addMemo": true,
+  "matchPersonaDescription": false,
+  "matchCharacterDescription": false,
+  "matchCharacterPersonality": false,
+  "matchCharacterDepthPrompt": false,
+  "matchScenario": false,
+  "matchCreatorNotes": false,
+  "delayUntilRecursion": false,
+  "group": "",
+  "groupOverride": false,
+  "groupWeight": 100,
+  "scanDepth": null,
+  "matchWholeWords": null,
+  "useGroupScoring": false,
+  "automationId": "",
+  "sticky": 0,
+  "cooldown": 0,
+  "delay": 0,
+  "uid": 1,
+  "displayIndex": 25,
+  "extensions": {
+    "position": 0,
+    "exclude_recursion": true,
+    "display_index": 25,
+    "probability": 100,
+    "useProbability": true,
+    "depth": 4,
+    "selectiveLogic": 0,
+    "group": "",
+    "group_override": false,
+    "group_weight": 100,
+    "prevent_recursion": true,
+    "delay_until_recursion": false,
+    "scan_depth": null,
+    "match_whole_words": null,
+    "use_group_scoring": false,
+    "case_sensitive": null,
+    "automation_id": "",
+    "role": 0,
+    "vectorized": false,
+    "sticky": 0,
+    "cooldown": 0,
+    "delay": 0,
+    "match_persona_description": false,
+    "match_character_description": false,
+    "match_character_personality": false,
+    "match_character_depth_prompt": false,
+    "match_scenario": false,
+    "match_creator_notes": false,
+    "triggers": [],
+    "ignore_budget": false
+  },
+  "ignoreBudget": false,
+  "outletName": "",
+  "triggers": [],
+  "characterFilter": {
+    "isExclude": false,
+    "names": [],
+    "tags": []
+  },
+  "useProbability": true
+}
+```

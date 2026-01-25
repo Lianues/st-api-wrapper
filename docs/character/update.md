@@ -13,7 +13,7 @@
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| avatarUrl | string | 是 | 角色头像文件名（通常以 `.png` 结尾）。 |
+| name | string | 是 | 角色名称。内部会自动拼接为 `name + ".png"` 作为后端 `avatar`；即便你传入的 name 已经包含 `.png`，也会继续追加（会变成 `xxx.png.png`），因此请只传“纯名字”。 |
 | patch | object | 是 | 要合并到角色卡的 patch（请不要包含 `json_data`）。 |
 | returnCharacter | boolean | 否 | 更新后是否额外调用一次 `character.get()` 返回最新角色卡（默认 `false`）。 |
 
@@ -33,7 +33,7 @@
 ```typescript
 // 示例：修改 spec v2 的 data.description
 const res = await ST_API.character.update({
-  avatarUrl: "Alice.png",
+  name: "Alice",
   patch: {
     data: {
       description: "这是新的角色描述（通过 merge-attributes 合并写入）"

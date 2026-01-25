@@ -3,6 +3,7 @@ import type {
   GetPresetOutput,
   ListPresetsOutput,
   PresetInfo,
+  UtilityPrompts,
   CreatePresetInput,
   CreatePresetOutput,
   UpdatePresetInput,
@@ -24,6 +25,110 @@ import { fromStRegex, toStRegex } from '../regexScript/utils';
 
 const CHAT_API_TYPE = 'openai';
 
+function readString(v: any): string | undefined {
+  if (v === undefined || v === null) return undefined;
+  return typeof v === 'string' ? v : String(v);
+}
+
+function readNumber(v: any): number | undefined {
+  if (v === undefined || v === null) return undefined;
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function getFirstDefined(obj: any, keys: string[]) {
+  for (const k of keys) {
+    if (obj && Object.prototype.hasOwnProperty.call(obj, k) && obj[k] !== undefined) {
+      return obj[k];
+    }
+  }
+  return undefined;
+}
+
+const UTILITY_PROMPT_KEYS = [
+  // snake_case (ST)
+  'impersonation_prompt',
+  'wi_format',
+  'scenario_format',
+  'personality_format',
+  'group_nudge_prompt',
+  'new_chat_prompt',
+  'new_group_chat_prompt',
+  'new_example_chat_prompt',
+  'continue_nudge_prompt',
+  'send_if_empty',
+  'seed',
+
+  // camelCase aliases (best-effort)
+  'impersonationPrompt',
+  'wiFormat',
+  'worldInfoFormat',
+  'scenarioFormat',
+  'personalityFormat',
+  'groupNudgePrompt',
+  'newChatPrompt',
+  'newGroupChatPrompt',
+  'newExampleChatPrompt',
+  'continueNudgePrompt',
+  'sendIfEmpty',
+] as const;
+
+function stripUtilityPromptFields(other: any) {
+  if (!other || typeof other !== 'object' || Array.isArray(other)) return;
+  for (const k of UTILITY_PROMPT_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(other, k)) {
+      delete other[k];
+    }
+  }
+}
+
+function assertNoUtilityPromptFieldsInOther(other: any, where: string) {
+  if (!other || typeof other !== 'object' || Array.isArray(other)) return;
+  const found = UTILITY_PROMPT_KEYS.find((k) => Object.prototype.hasOwnProperty.call(other, k));
+  if (!found) return;
+  throw new Error(`[ST API] ${where}: Utility prompt field "${String(found)}" is not allowed in "other". Please put it in "utilityPrompts" instead.`);
+}
+
+function mergeUtilityPrompts(base: UtilityPrompts, patch: UtilityPrompts): UtilityPrompts {
+  return {
+    impersonationPrompt: patch.impersonationPrompt ?? base.impersonationPrompt,
+    worldInfoFormat: patch.worldInfoFormat ?? base.worldInfoFormat,
+    scenarioFormat: patch.scenarioFormat ?? base.scenarioFormat,
+    personalityFormat: patch.personalityFormat ?? base.personalityFormat,
+    groupNudgePrompt: patch.groupNudgePrompt ?? base.groupNudgePrompt,
+    newChatPrompt: patch.newChatPrompt ?? base.newChatPrompt,
+    newGroupChatPrompt: patch.newGroupChatPrompt ?? base.newGroupChatPrompt,
+    newExampleChatPrompt: patch.newExampleChatPrompt ?? base.newExampleChatPrompt,
+    continueNudgePrompt: patch.continueNudgePrompt ?? base.continueNudgePrompt,
+    sendIfEmpty: patch.sendIfEmpty ?? base.sendIfEmpty,
+    seed: patch.seed ?? base.seed,
+  };
+}
+
+/**
+ * 从 other（原酒馆 settings 对象的剩余字段）中提取 “Utility Prompts / Format Templates” 等字段，放到 PresetInfo.utilityPrompts。
+ * 注意：这里只做“读取视图”，不会修改原 other。
+ */
+function extractUtilityPrompts(other: any): UtilityPrompts {
+  const s = (keys: string[]) => readString(getFirstDefined(other, keys));
+  const n = (keys: string[]) => readNumber(getFirstDefined(other, keys));
+
+  return {
+    impersonationPrompt: s(['impersonation_prompt', 'impersonationPrompt']),
+    worldInfoFormat: s(['wi_format', 'wiFormat', 'worldInfoFormat']),
+    scenarioFormat: s(['scenario_format', 'scenarioFormat']),
+    personalityFormat: s(['personality_format', 'personalityFormat']),
+    groupNudgePrompt: s(['group_nudge_prompt', 'groupNudgePrompt']),
+    newChatPrompt: s(['new_chat_prompt', 'newChatPrompt']),
+    newGroupChatPrompt: s(['new_group_chat_prompt', 'newGroupChatPrompt']),
+    newExampleChatPrompt: s(['new_example_chat_prompt', 'newExampleChatPrompt']),
+    continueNudgePrompt: s(['continue_nudge_prompt', 'continueNudgePrompt']),
+    sendIfEmpty: s(['send_if_empty', 'sendIfEmpty']),
+    seed: n(['seed']),
+  };
+}
+
 /**
  * 辅助：获取预设管理器
  */
@@ -38,7 +143,7 @@ function getPresetManager() {
  * 辅助：将原始设置转换为合并后的简化结构
  */
 function transformPreset(name: string, settings: any): PresetInfo {
-  const { prompts: rawPrompts = [], prompt_order: rawOrder = [], ...apiSetting } = settings || {};
+  const { prompts: rawPrompts = [], prompt_order: rawOrder = [], ...other } = settings || {};
   
   let activeOrderList: any[] = [];
   if (Array.isArray(rawOrder) && rawOrder[0] && Array.isArray(rawOrder[0].order)) {
@@ -89,14 +194,18 @@ function transformPreset(name: string, settings: any): PresetInfo {
     return aIdx - bIdx;
   });
 
-  const apiSettingOut: any = apiSetting || {};
-  const regexScripts = readPresetRegexScripts(apiSettingOut);
+  const otherOut: any = other || {};
+  const regexScripts = readPresetRegexScripts(otherOut);
+  const utilityPrompts = extractUtilityPrompts(otherOut);
+  // 输出侧：这些字段已迁移到 utilityPrompts，因此从 other 删除，避免重复与混淆
+  stripUtilityPromptFields(otherOut);
 
   return {
     name: name || 'Default',
     prompts: mergedPrompts,
+    utilityPrompts,
     regexScripts,
-    apiSetting: apiSettingOut
+    other: otherOut
   };
 }
 
@@ -105,10 +214,10 @@ function safeObject(x: any): Record<string, any> {
 }
 
 /**
- * 从 apiSetting.extensions.regex_scripts 中提取正则脚本（不改动 apiSetting）。
+ * 从 other.extensions.regex_scripts 中提取正则脚本（不改动 other）。
  */
-function readPresetRegexScripts(apiSetting: any): RegexScriptData[] {
-  const ext = safeObject(apiSetting?.extensions);
+function readPresetRegexScripts(other: any): RegexScriptData[] {
+  const ext = safeObject(other?.extensions);
   const raw = (ext as any).regex_scripts ?? (ext as any).regexScripts ?? [];
   return (Array.isArray(raw) ? raw : [])
     .filter(Boolean)
@@ -147,12 +256,26 @@ function revertPreset(preset: PresetInfo): any {
   }];
 
   const out: any = {
-    ...preset.apiSetting,
+    ...(preset as any).other,
     prompts: rawPrompts,
     prompt_order: prompt_order
   };
 
-  // write preset regex scripts back to apiSetting.extensions.regex_scripts
+  // 写回 Utility Prompts（这些字段在 wrapper 输出里已从 other（旧名 apiSetting）移除）
+  const up: any = (preset as any).utilityPrompts ?? {};
+  if (up.impersonationPrompt !== undefined) out.impersonation_prompt = up.impersonationPrompt;
+  if (up.worldInfoFormat !== undefined) out.wi_format = up.worldInfoFormat;
+  if (up.scenarioFormat !== undefined) out.scenario_format = up.scenarioFormat;
+  if (up.personalityFormat !== undefined) out.personality_format = up.personalityFormat;
+  if (up.groupNudgePrompt !== undefined) out.group_nudge_prompt = up.groupNudgePrompt;
+  if (up.newChatPrompt !== undefined) out.new_chat_prompt = up.newChatPrompt;
+  if (up.newGroupChatPrompt !== undefined) out.new_group_chat_prompt = up.newGroupChatPrompt;
+  if (up.newExampleChatPrompt !== undefined) out.new_example_chat_prompt = up.newExampleChatPrompt;
+  if (up.continueNudgePrompt !== undefined) out.continue_nudge_prompt = up.continueNudgePrompt;
+  if (up.sendIfEmpty !== undefined) out.send_if_empty = up.sendIfEmpty;
+  if (up.seed !== undefined) out.seed = up.seed;
+
+  // write preset regex scripts back to other.extensions.regex_scripts
   const ext = safeObject(out.extensions);
   const had = Object.prototype.hasOwnProperty.call(ext, 'regex_scripts');
   if ((Array.isArray(preset.regexScripts) && preset.regexScripts.length > 0) || had) {
@@ -246,8 +369,17 @@ export async function create(input: CreatePresetInput): Promise<CreatePresetOutp
   const templateRaw = templateName ? getRawSettings(templateName) : {};
   const basePreset = transformPreset(input.name, JSON.parse(JSON.stringify(templateRaw)));
 
-  if (input.apiSetting) {
-    basePreset.apiSetting = { ...basePreset.apiSetting, ...input.apiSetting };
+  if (Object.prototype.hasOwnProperty.call(input as any, 'apiSetting')) {
+    throw new Error('[ST API] preset.create: "apiSetting" has been renamed to "other". Please use "other".');
+  }
+
+  if ((input as any).other) {
+    assertNoUtilityPromptFieldsInOther((input as any).other, 'preset.create(other)');
+    basePreset.other = { ...basePreset.other, ...(input as any).other };
+  }
+
+  if ((input as any).utilityPrompts) {
+    basePreset.utilityPrompts = mergeUtilityPrompts(basePreset.utilityPrompts, (input as any).utilityPrompts);
   }
   if (input.prompts) {
     basePreset.prompts = input.prompts as PromptInfo[];
@@ -255,8 +387,8 @@ export async function create(input: CreatePresetInput): Promise<CreatePresetOutp
   if (Array.isArray(input.regexScripts)) {
     basePreset.regexScripts = input.regexScripts;
   } else {
-    // 兼容：如果用户把 regex_scripts 塞在 apiSetting.extensions 里，这里会从 apiSetting 直接提取
-    basePreset.regexScripts = readPresetRegexScripts(basePreset.apiSetting);
+    // 兼容：如果用户把 regex_scripts 塞在 other.extensions 里，这里会从 other 直接提取
+    basePreset.regexScripts = readPresetRegexScripts(basePreset.other);
   }
 
   const rawToSave = revertPreset(basePreset);
@@ -275,8 +407,17 @@ export async function update(input: UpdatePresetInput): Promise<UpdatePresetOutp
 
   const preset = transformPreset(input.name, JSON.parse(JSON.stringify(raw)));
 
-  if (input.apiSetting) {
-    preset.apiSetting = { ...preset.apiSetting, ...input.apiSetting };
+  if (Object.prototype.hasOwnProperty.call(input as any, 'apiSetting')) {
+    throw new Error('[ST API] preset.update: "apiSetting" has been renamed to "other". Please use "other".');
+  }
+
+  if ((input as any).other) {
+    assertNoUtilityPromptFieldsInOther((input as any).other, 'preset.update(other)');
+    preset.other = { ...preset.other, ...(input as any).other };
+  }
+
+  if ((input as any).utilityPrompts) {
+    preset.utilityPrompts = mergeUtilityPrompts(preset.utilityPrompts, (input as any).utilityPrompts);
   }
   if (input.prompts) {
     preset.prompts = input.prompts as PromptInfo[];
@@ -284,7 +425,7 @@ export async function update(input: UpdatePresetInput): Promise<UpdatePresetOutp
   if (Array.isArray(input.regexScripts)) {
     preset.regexScripts = input.regexScripts;
   } else {
-    preset.regexScripts = readPresetRegexScripts(preset.apiSetting);
+    preset.regexScripts = readPresetRegexScripts(preset.other);
   }
 
   const rawToSave = revertPreset(preset);

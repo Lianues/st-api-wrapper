@@ -30,6 +30,8 @@
 | chatHistory | 同 buildRequest | - | **仅 writeToChat=false 时可用**。 |
 | extraBlocks | 同 buildRequest | - | 额外块插入（对 Chat Completions 生效）。 |
 
+> 说明：`preset.inject/replace` 传入的 `PresetInfo` 可包含 `utilityPrompts`，会随本次请求一并生效（不要混在 `other` 里）。
+
 ---
 
 ## 输出（GenerateOutput）
@@ -79,7 +81,7 @@ if (!injectedPreset) throw new Error('preset not found');
 
 const res = await ST_API.prompt.generate({
   writeToChat: false,
-  preset: { mode: 'inject', preset: injectedPreset },
+  preset: { inject: injectedPreset },
   extraBlocks: [
     { role: 'system', content: '（注入）你必须用中文回答。', index: 0 },
   ],

@@ -65,6 +65,18 @@ function getAvatarFromAny(raw: any): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null;
 }
 
+function avatarUrlFromName(name: string): string {
+  const n = String(name ?? '').trim();
+  if (!n) throw new Error('name is required');
+  return `${n}.png`;
+}
+
+function stripPngSuffix(nameOrAvatar: string): string {
+  const v = String(nameOrAvatar ?? '').trim();
+  if (!v) return v;
+  return v.toLowerCase().endsWith('.png') ? v.slice(0, -4) : v;
+}
+
 function safeObject(x: any): Record<string, any> {
   return x && typeof x === 'object' && !Array.isArray(x) ? x : {};
 }
@@ -141,8 +153,7 @@ function toCharacterCard(raw: any): CharacterCard {
  * 获取单个角色卡（full）
  */
 export async function get(input: GetCharacterInput): Promise<GetCharacterOutput> {
-  const avatarUrl = String(input?.avatarUrl || '').trim();
-  if (!avatarUrl) throw new Error('avatarUrl is required');
+  const avatarUrl = avatarUrlFromName(input?.name);
 
   const raw = await postJson<any>('/api/characters/get', { avatar_url: avatarUrl }, 'json');
   return { character: toCharacterCard(raw) };
@@ -162,7 +173,7 @@ export async function list(input: ListCharactersInput = {}): Promise<ListCharact
   for (const c of Array.isArray(rawList) ? rawList : []) {
     const avatar = getAvatarFromAny(c);
     if (!avatar) continue;
-    const full = await get({ avatarUrl: avatar });
+    const full = await get({ name: stripPngSuffix(avatar) });
     out.push(full.character);
   }
 
@@ -188,8 +199,7 @@ export async function deleteCharacter(input: DeleteCharacterInput): Promise<Dele
  * 修改某个角色卡（deep-merge + v2 校验）
  */
 export async function update(input: UpdateCharacterInput): Promise<UpdateCharacterOutput> {
-  const avatarUrl = String(input?.avatarUrl || '').trim();
-  if (!avatarUrl) throw new Error('avatarUrl is required');
+  const avatarUrl = avatarUrlFromName(input?.name);
 
   const patch = input?.patch ?? {};
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
@@ -203,7 +213,7 @@ export async function update(input: UpdateCharacterInput): Promise<UpdateCharact
   }, 'void');
 
   if (input?.returnCharacter) {
-    const updated = await get({ avatarUrl });
+    const updated = await get({ name: input?.name });
     return { ok: true, character: updated.character };
   }
 

@@ -57,10 +57,11 @@ export interface CharacterCard {
 
 export interface GetCharacterInput {
   /**
-   * 角色头像文件名（后端字段 avatar_url）。
-   * 例："Alice.png"
+   * 角色名称（用于推导 avatar_url）。
+   * - 会自动追加 `.png`（例如传入 "Alice" 会请求 "Alice.png"）
+   * - 即便你传入的 name 已经包含 `.png`，也会继续追加（会变成 "Alice.png.png"）
    */
-  avatarUrl: string;
+  name: string;
 }
 
 export interface GetCharacterOutput {
@@ -101,10 +102,11 @@ export interface DeleteCharacterOutput {
 
 export interface UpdateCharacterInput {
   /**
-   * 角色头像文件名（用于定位要更新的卡；后端字段 avatar）。
-   * 例："Alice.png"
+   * 角色名称（用于推导后端字段 avatar）。
+   * - 会自动追加 `.png`（例如传入 "Alice" 会使用 avatar="Alice.png"）
+   * - 即便你传入的 name 已经包含 `.png`，也会继续追加（会变成 "Alice.png.png"）
    */
-  avatarUrl: string;
+  name: string;
 
   /**
    * 要合并到角色卡的 patch（会 deep-merge 到原角色对象，并进行 TavernCard v2 校验）。

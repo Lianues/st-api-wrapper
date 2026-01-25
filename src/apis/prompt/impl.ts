@@ -10,7 +10,7 @@ import type {
 } from './types';
 import { normalizeChatMessages } from '../../core/utils/messages';
 import { chatMessagesToStChat } from '../../core/utils/chat';
-import { applyPresetToChatCompletionSettings, detectPromptOrderCharacterId } from '../../core/utils/preset';
+import { applyPresetPatchToChatCompletionSettings, applyPresetToChatCompletionSettings, detectPromptOrderCharacterId } from '../../core/utils/preset';
 import { worldBookToStWorldInfo } from '../../core/utils/worldbook';
 
 function replaceArrayContents<T>(arr: T[], next: T[]) {
@@ -119,6 +119,148 @@ function insertExtraBlocks(messages: ChatCompletionMessage[], blocks: ExtraMessa
   return result;
 }
 
+function makeTempWorldInfoName() {
+  return `__st_api_tmp_wi__${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizeWorldInfoEntriesMap(raw: any): Record<number, any> {
+  const out: Record<number, any> = {};
+  if (!raw || typeof raw !== 'object') return out;
+
+  for (const [k, v] of Object.entries(raw)) {
+    const keyUid = Number(k);
+    if (!Number.isFinite(keyUid)) continue;
+
+    const entry = v && typeof v === 'object' ? { ...(v as any) } : { uid: keyUid };
+    const uid = Number((entry as any).uid);
+    const finalUid = Number.isFinite(uid) ? uid : keyUid;
+    entry.uid = finalUid;
+    out[finalUid] = entry;
+  }
+
+  return out;
+}
+
+/**
+ * 合并两份 world info entries-map：按 comment（条目名）匹配，同名则覆盖，uid 保持 base 的 uid。
+ * 不同名则分配新 uid（避免冲突）。
+ */
+function mergeWorldInfoEntriesByComment(baseRaw: any, injectedRaw: any): Record<number, any> {
+  const base = normalizeWorldInfoEntriesMap(baseRaw);
+  const injected = normalizeWorldInfoEntriesMap(injectedRaw);
+
+  const merged: Record<number, any> = { ...base };
+  const nameToUid = new Map<string, number>();
+  const usedUids = new Set<number>();
+  let maxUid = -1;
+
+  for (const [uidStr, entry] of Object.entries(merged)) {
+    const uid = Number(uidStr);
+    if (!Number.isFinite(uid)) continue;
+    usedUids.add(uid);
+    maxUid = Math.max(maxUid, uid);
+    const name = String((entry as any)?.comment ?? '').trim();
+    if (name && !nameToUid.has(name)) nameToUid.set(name, uid);
+  }
+
+  const injectedEntries = Object.values(injected) as any[];
+  for (const e of injectedEntries) {
+    const name = String(e?.comment ?? '').trim();
+
+    if (name && nameToUid.has(name)) {
+      const targetUid = nameToUid.get(name)!;
+      merged[targetUid] = { ...(merged[targetUid] ?? {}), ...e, uid: targetUid, comment: name };
+      continue;
+    }
+
+    let newUid = Number(e?.uid);
+    if (!Number.isFinite(newUid) || usedUids.has(newUid)) {
+      newUid = maxUid + 1;
+      while (usedUids.has(newUid)) newUid++;
+    }
+
+    maxUid = Math.max(maxUid, newUid);
+    usedUids.add(newUid);
+    merged[newUid] = { ...e, uid: newUid, ...(name ? { comment: name } : {}) };
+    if (name && !nameToUid.has(name)) nameToUid.set(name, newUid);
+  }
+
+  return merged;
+}
+
+async function applyWorldbookOverrides(ctx: any, wbOpt: any, restorers: Array<() => void>): Promise<boolean> {
+  const mode = String(wbOpt?.mode ?? 'current');
+  if (mode === 'disable') return true;
+
+  const injectBook = wbOpt?.inject;
+  const replaceBook = wbOpt?.replace;
+  if (injectBook && replaceBook) {
+    throw new Error('worldbook.inject and worldbook.replace are mutually exclusive');
+  }
+
+  if (!injectBook && !replaceBook) return false;
+  if (!ctx?.chatMetadata) throw new Error('chatMetadata not available in context');
+
+  // @ts-ignore - runtime-only module provided by SillyTavern
+  const wi = await import('/scripts/world-info.js') as any;
+  const worldInfoCache = wi?.worldInfoCache;
+  const loadWorldInfo = wi?.loadWorldInfo;
+  const selectedWorldInfo = wi?.selected_world_info;
+  const metadataKey = String(wi?.METADATA_KEY || 'world_info');
+
+  if (!worldInfoCache || typeof worldInfoCache.set !== 'function') {
+    throw new Error('worldInfoCache is not available (failed to import /scripts/world-info.js)');
+  }
+
+  const chatMetadata = ctx.chatMetadata as any;
+  const snapshot = chatMetadata[metadataKey];
+  const tempName = makeTempWorldInfoName();
+
+  let entries: Record<number, any> = {};
+
+  if (replaceBook) {
+    entries = worldBookToStWorldInfo(replaceBook).entries;
+  } else if (injectBook) {
+    const injectedEntries = worldBookToStWorldInfo(injectBook).entries;
+    let baseEntries: any = {};
+
+    // base: only merge current chat lorebook if it isn't already activated globally (to avoid duplicates)
+    const currentName = snapshot;
+    const selected = Array.isArray(selectedWorldInfo) ? selectedWorldInfo : [];
+    if (typeof currentName === 'string' && currentName.trim() !== '' && !selected.includes(currentName)) {
+      try {
+        const data = typeof loadWorldInfo === 'function' ? await loadWorldInfo(currentName) : null;
+        if (data && typeof data === 'object' && (data as any).entries && typeof (data as any).entries === 'object') {
+          baseEntries = (data as any).entries;
+        }
+      } catch {
+        // ignore base load errors; inject-only still works
+      }
+    }
+
+    entries = mergeWorldInfoEntriesByComment(baseEntries, injectedEntries);
+  }
+
+  // write temp book into cache and point chat metadata to it
+  worldInfoCache.set(tempName, { entries });
+  chatMetadata[metadataKey] = tempName;
+
+  restorers.push(() => {
+    try {
+      chatMetadata[metadataKey] = snapshot;
+    } catch {
+      // ignore
+    }
+    try {
+      worldInfoCache.delete(tempName);
+    } catch {
+      // ignore
+    }
+  });
+
+  return false;
+}
+
 /**
  * 获取当前提示词（最终发送给 API 的结果）
  */
@@ -192,12 +334,12 @@ export async function buildRequest(input: BuildRequestInput): Promise<BuildReque
 
   try {
     // --- preset overrides (chat completion only, but safe to apply regardless) ---
-    const presetOpt = input?.preset ?? { mode: 'current' as const };
-    if (presetOpt.mode === 'inject') {
-      if (!presetOpt.preset) throw new Error('preset.mode=inject requires preset.preset');
-      const applied = applyPresetToChatCompletionSettings(ctx.chatCompletionSettings, presetOpt.preset);
-      restorers.push(applied.restore);
-    } else if (presetOpt.mode === 'disable') {
+    const presetOpt = input?.preset;
+    const presetMode = String(presetOpt?.mode ?? 'current');
+    const presetInject = presetOpt?.inject;
+    const presetReplace = presetOpt?.replace;
+
+    if (presetMode === 'disable') {
       const settings = ctx.chatCompletionSettings;
       const snapshot = { prompt_order: settings?.prompt_order };
       const promptOrderCharacterId = detectPromptOrderCharacterId(settings, 100001);
@@ -216,21 +358,21 @@ export async function buildRequest(input: BuildRequestInput): Promise<BuildReque
       restorers.push(() => {
         settings.prompt_order = snapshot.prompt_order;
       });
+    } else if (presetInject || presetReplace) {
+      if (presetInject && presetReplace) {
+        throw new Error('preset.inject and preset.replace are mutually exclusive');
+      }
+      if (presetReplace) {
+        const applied = applyPresetToChatCompletionSettings(ctx.chatCompletionSettings, presetReplace);
+        restorers.push(applied.restore);
+      } else if (presetInject) {
+        const applied = applyPresetPatchToChatCompletionSettings(ctx.chatCompletionSettings, presetInject);
+        restorers.push(applied.restore);
+      }
     }
 
     // --- worldbook overrides ---
-    const wbOpt = input?.worldbook ?? { mode: 'current' as const };
-    if (wbOpt.mode === 'disable') {
-      skipWIAN = true;
-    } else if (wbOpt.mode === 'inject') {
-      if (!wbOpt.worldBook) throw new Error('worldbook.mode=inject requires worldbook.worldBook');
-      const snapshot = ctx.chatMetadata?.world_info;
-      if (!ctx.chatMetadata) throw new Error('chatMetadata not available in context');
-      ctx.chatMetadata.world_info = worldBookToStWorldInfo(wbOpt.worldBook);
-      restorers.push(() => {
-        ctx.chatMetadata.world_info = snapshot;
-      });
-    }
+    skipWIAN = await applyWorldbookOverrides(ctx, input?.worldbook, restorers);
 
     // --- chat history overrides ---
     // - chatHistory.replace: replace whole history for this build
@@ -504,12 +646,12 @@ export async function generate(input: GenerateInput): Promise<GenerateOutput> {
 
   try {
     // --- preset overrides (chat completion only, but safe to apply regardless) ---
-    const presetOpt = input?.preset ?? { mode: 'current' as const };
-    if (presetOpt.mode === 'inject') {
-      if (!presetOpt.preset) throw new Error('preset.mode=inject requires preset.preset');
-      const applied = applyPresetToChatCompletionSettings(ctx.chatCompletionSettings, presetOpt.preset);
-      restorers.push(applied.restore);
-    } else if (presetOpt.mode === 'disable') {
+    const presetOpt = input?.preset;
+    const presetMode = String(presetOpt?.mode ?? 'current');
+    const presetInject = presetOpt?.inject;
+    const presetReplace = presetOpt?.replace;
+
+    if (presetMode === 'disable') {
       const settings = ctx.chatCompletionSettings;
       const snapshot = { prompt_order: settings?.prompt_order };
       const promptOrderCharacterId = detectPromptOrderCharacterId(settings, 100001);
@@ -528,21 +670,21 @@ export async function generate(input: GenerateInput): Promise<GenerateOutput> {
       restorers.push(() => {
         settings.prompt_order = snapshot.prompt_order;
       });
+    } else if (presetInject || presetReplace) {
+      if (presetInject && presetReplace) {
+        throw new Error('preset.inject and preset.replace are mutually exclusive');
+      }
+      if (presetReplace) {
+        const applied = applyPresetToChatCompletionSettings(ctx.chatCompletionSettings, presetReplace);
+        restorers.push(applied.restore);
+      } else if (presetInject) {
+        const applied = applyPresetPatchToChatCompletionSettings(ctx.chatCompletionSettings, presetInject);
+        restorers.push(applied.restore);
+      }
     }
 
     // --- worldbook overrides ---
-    const wbOpt = input?.worldbook ?? { mode: 'current' as const };
-    if (wbOpt.mode === 'disable') {
-      skipWIAN = true;
-    } else if (wbOpt.mode === 'inject') {
-      if (!wbOpt.worldBook) throw new Error('worldbook.mode=inject requires worldbook.worldBook');
-      const snapshot = ctx.chatMetadata?.world_info;
-      if (!ctx.chatMetadata) throw new Error('chatMetadata not available in context');
-      ctx.chatMetadata.world_info = worldBookToStWorldInfo(wbOpt.worldBook);
-      restorers.push(() => {
-        ctx.chatMetadata.world_info = snapshot;
-      });
-    }
+    skipWIAN = await applyWorldbookOverrides(ctx, input?.worldbook, restorers);
 
     return await new Promise<GenerateOutput>((resolve, reject) => {
       let done = false;

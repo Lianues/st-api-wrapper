@@ -19,6 +19,8 @@
 | presets | PresetInfo[] | 预设详情列表。 |
 | active | string | 当前激活的预设名称。 |
 
+> 说明：`PresetInfo.utilityPrompts` 中的字段已从返回的 `PresetInfo.other` 中移除。
+
 ---
 
 ## 示例
@@ -40,8 +42,12 @@ console.log('全部预设详情:', res.presets);
     {
       "name": "Default",
       "prompts": [],
+      "utilityPrompts": {
+        "newChatPrompt": "[Start a new Chat]",
+        "seed": -1
+      },
       "regexScripts": [],
-      "apiSetting": { "temp": 1.0 }
+      "other": { "temp": 1.0 }
     }
   ]
 }

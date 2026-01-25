@@ -18,19 +18,51 @@ export interface GetPromptInput {
 
 export type GetPromptOutput = PromptResult;
 
-export type PresetMode = 'current' | 'disable' | 'inject';
-export type WorldBookMode = 'current' | 'disable' | 'inject';
+export type PresetMode = 'current' | 'disable';
+export type WorldBookMode = 'current' | 'disable';
 
 export interface RequestPresetOption {
-  mode: PresetMode;
-  /** mode=inject 时必填 */
-  preset?: PresetInfo;
+  /**
+   * 预设使用策略：
+   * - current：使用当前酒馆预设（不做改动）
+   * - disable：临时把当前 prompts 全部置为 disabled（仅影响本次请求）
+   * @default 'current'
+   */
+  mode?: PresetMode;
+
+  /**
+   * 注入（合并）预设：将你提供的 PresetInfo 作为 patch 合并到当前预设里（同名 identifier 覆盖）。
+   * 与 replace 互斥。
+   */
+  inject?: PresetInfo;
+
+  /**
+   * 替换预设：本次请求整体替换为你提供的 PresetInfo。
+   * 与 inject 互斥。
+   */
+  replace?: PresetInfo;
 }
 
 export interface RequestWorldBookOption {
-  mode: WorldBookMode;
-  /** mode=inject 时必填 */
-  worldBook?: WorldBook;
+  /**
+   * 世界书使用策略：
+   * - current：使用当前世界书设置
+   * - disable：不使用世界书（通过 `skipWIAN`，同时跳过作者注释）
+   * @default 'current'
+   */
+  mode?: WorldBookMode;
+
+  /**
+   * 注入（合并）世界书：将你提供的 WorldBook 条目合并到当前 chat lorebook（同名 comment 覆盖）。
+   * 与 replace 互斥。
+   */
+  inject?: WorldBook;
+
+  /**
+   * 替换世界书：本次请求使用你提供的 WorldBook 作为 chat lorebook（结束会回滚，不落盘）。
+   * 与 inject 互斥。
+   */
+  replace?: WorldBook;
 }
 
 export interface RequestChatHistoryOption {
@@ -108,13 +140,13 @@ export interface BuildRequestInput {
   forceCharacterId?: number;
 
   /**
-   * 预设使用策略：当前 / 禁用 / 注入
+   * 预设策略：当前 / 禁用 / 注入(合并) / 替换
    * @default { mode: 'current' }
    */
   preset?: RequestPresetOption;
 
   /**
-   * 世界书使用策略：当前 / 禁用 / 注入
+   * 世界书策略：当前 / 禁用 / 注入(合并) / 替换
    * @default { mode: 'current' }
    */
   worldbook?: RequestWorldBookOption;

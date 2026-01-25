@@ -6596,8 +6596,12 @@ var __publicField = (obj, key, value) => {
     });
   }
   function detectPromptOrderCharacterId(settings, fallback = 100001) {
-    var _a, _b;
-    const v = (_b = (_a = settings == null ? void 0 : settings.prompt_order) == null ? void 0 : _a[0]) == null ? void 0 : _b.character_id;
+    var _a;
+    const list2 = Array.isArray(settings == null ? void 0 : settings.prompt_order) ? settings.prompt_order : [];
+    const hasFallback = list2.some((x) => String(x == null ? void 0 : x.character_id) === String(fallback));
+    if (hasFallback)
+      return fallback;
+    const v = (_a = list2 == null ? void 0 : list2[0]) == null ? void 0 : _a.character_id;
     if (typeof v === "number" && Number.isFinite(v))
       return v;
     if (typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)))
@@ -6609,7 +6613,69 @@ var __publicField = (obj, key, value) => {
       return value;
     return fallback;
   }
+  const UTILITY_PROMPT_KEYS$1 = [
+    // snake_case (ST)
+    "impersonation_prompt",
+    "wi_format",
+    "scenario_format",
+    "personality_format",
+    "group_nudge_prompt",
+    "new_chat_prompt",
+    "new_group_chat_prompt",
+    "new_example_chat_prompt",
+    "continue_nudge_prompt",
+    "send_if_empty",
+    "seed",
+    // camelCase aliases (best-effort)
+    "impersonationPrompt",
+    "wiFormat",
+    "worldInfoFormat",
+    "scenarioFormat",
+    "personalityFormat",
+    "groupNudgePrompt",
+    "newChatPrompt",
+    "newGroupChatPrompt",
+    "newExampleChatPrompt",
+    "continueNudgePrompt",
+    "sendIfEmpty"
+  ];
+  function assertNoUtilityPromptFieldsInOther$1(preset) {
+    const other = preset == null ? void 0 : preset.other;
+    if (!other || typeof other !== "object" || Array.isArray(other))
+      return;
+    const found = UTILITY_PROMPT_KEYS$1.find((k) => Object.prototype.hasOwnProperty.call(other, k));
+    if (!found)
+      return;
+    throw new Error(`[ST API] PresetInfo.other contains utility prompt field "${String(found)}". Please move it to PresetInfo.utilityPrompts.`);
+  }
+  function utilityPromptsToApiSetting(preset) {
+    const up = preset == null ? void 0 : preset.utilityPrompts;
+    if (!up || typeof up !== "object")
+      return {};
+    const out = {};
+    const set2 = (k, v) => {
+      if (v === void 0)
+        return;
+      out[k] = v;
+    };
+    set2("impersonation_prompt", up.impersonationPrompt);
+    set2("wi_format", up.worldInfoFormat);
+    set2("scenario_format", up.scenarioFormat);
+    set2("personality_format", up.personalityFormat);
+    set2("group_nudge_prompt", up.groupNudgePrompt);
+    set2("new_chat_prompt", up.newChatPrompt);
+    set2("new_group_chat_prompt", up.newGroupChatPrompt);
+    set2("new_example_chat_prompt", up.newExampleChatPrompt);
+    set2("continue_nudge_prompt", up.continueNudgePrompt);
+    set2("send_if_empty", up.sendIfEmpty);
+    set2("seed", up.seed);
+    return out;
+  }
   function presetInfoToStSettings(preset, options = {}) {
+    if (Object.prototype.hasOwnProperty.call(preset, "apiSetting")) {
+      throw new Error("[ST API] PresetInfo.apiSetting has been renamed to PresetInfo.other. Please update your code.");
+    }
+    assertNoUtilityPromptFieldsInOther$1(preset);
     const promptOrderCharacterId = options.promptOrderCharacterId ?? 100001;
     const loadedPrompts = (preset.prompts || []).filter((p2) => p2 && p2.index !== void 0).sort((a, b) => Number(a.index) - Number(b.index));
     const rawOrder = loadedPrompts.map((p2) => ({
@@ -6634,7 +6700,8 @@ var __publicField = (obj, key, value) => {
       }
     ];
     return {
-      ...preset.apiSetting || {},
+      ...preset.other || {},
+      ...utilityPromptsToApiSetting(preset),
       prompts: rawPrompts,
       prompt_order
     };
@@ -6649,11 +6716,92 @@ var __publicField = (obj, key, value) => {
     const st = presetInfoToStSettings(preset, { promptOrderCharacterId });
     settings.prompts = st.prompts;
     settings.prompt_order = st.prompt_order;
-    Object.keys(preset.apiSetting || {}).forEach((k) => {
+    const mergedApiSetting = { ...preset.other || {}, ...utilityPromptsToApiSetting(preset) };
+    Object.keys(mergedApiSetting).forEach((k) => {
       if (k === "prompts" || k === "prompt_order")
         return;
       snapshot.apiSetting.set(k, { hadOwn: Object.prototype.hasOwnProperty.call(settings, k), value: settings[k] });
-      settings[k] = preset.apiSetting[k];
+      settings[k] = mergedApiSetting[k];
+    });
+    const restore = () => {
+      settings.prompts = snapshot.prompts;
+      settings.prompt_order = snapshot.prompt_order;
+      for (const [k, prev] of snapshot.apiSetting.entries()) {
+        if (!prev.hadOwn) {
+          delete settings[k];
+        } else {
+          settings[k] = prev.value;
+        }
+      }
+    };
+    return { restore, promptOrderCharacterId };
+  }
+  function applyPresetPatchToChatCompletionSettings(settings, preset, options = {}) {
+    const snapshot = {
+      prompts: settings == null ? void 0 : settings.prompts,
+      prompt_order: settings == null ? void 0 : settings.prompt_order,
+      apiSetting: /* @__PURE__ */ new Map()
+    };
+    const promptOrderCharacterId = options.promptOrderCharacterId ?? detectPromptOrderCharacterId(settings, 100001);
+    const st = presetInfoToStSettings(preset, { promptOrderCharacterId });
+    const basePrompts = Array.isArray(settings == null ? void 0 : settings.prompts) ? settings.prompts : [];
+    const mergedPrompts = basePrompts.map((p2) => ({ ...p2 }));
+    const idxById = /* @__PURE__ */ new Map();
+    mergedPrompts.forEach((p2, idx) => {
+      const id = p2 == null ? void 0 : p2.identifier;
+      if (typeof id === "string" && id)
+        idxById.set(id, idx);
+    });
+    (st.prompts || []).forEach((p2) => {
+      const id = p2 == null ? void 0 : p2.identifier;
+      if (typeof id !== "string" || !id)
+        return;
+      if (idxById.has(id)) {
+        const i = idxById.get(id);
+        mergedPrompts[i] = { ...mergedPrompts[i] ?? {}, ...p2 };
+      } else {
+        idxById.set(id, mergedPrompts.length);
+        mergedPrompts.push({ ...p2 });
+      }
+    });
+    settings.prompts = mergedPrompts;
+    const basePromptOrderArr = Array.isArray(snapshot.prompt_order) ? snapshot.prompt_order : [];
+    const baseOrderObj = basePromptOrderArr.find((x) => Number(x == null ? void 0 : x.character_id) === Number(promptOrderCharacterId)) ?? basePromptOrderArr[0];
+    const baseOrder = Array.isArray(baseOrderObj == null ? void 0 : baseOrderObj.order) ? baseOrderObj.order.filter((x) => x && typeof x.identifier === "string" && x.identifier).map((x) => ({ identifier: String(x.identifier), enabled: normalizeEnabled(x.enabled, true) })) : [];
+    const patchOrderObj = Array.isArray(st.prompt_order) ? st.prompt_order[0] : null;
+    const patchOrder = Array.isArray(patchOrderObj == null ? void 0 : patchOrderObj.order) ? patchOrderObj.order.filter((x) => x && typeof x.identifier === "string" && x.identifier).map((x) => ({ identifier: String(x.identifier), enabled: normalizeEnabled(x.enabled, true) })) : [];
+    const mergedOrder = baseOrder.map((x) => ({ ...x }));
+    const orderIdx = /* @__PURE__ */ new Map();
+    mergedOrder.forEach((x, i) => orderIdx.set(x.identifier, i));
+    patchOrder.forEach((x) => {
+      if (orderIdx.has(x.identifier)) {
+        mergedOrder[orderIdx.get(x.identifier)].enabled = x.enabled;
+      } else {
+        orderIdx.set(x.identifier, mergedOrder.length);
+        mergedOrder.push({ ...x });
+      }
+    });
+    (st.prompts || []).forEach((p2) => {
+      const id = p2 == null ? void 0 : p2.identifier;
+      if (typeof id !== "string" || !id)
+        return;
+      if (orderIdx.has(id))
+        return;
+      orderIdx.set(id, mergedOrder.length);
+      mergedOrder.push({ identifier: id, enabled: normalizeEnabled(p2 == null ? void 0 : p2.enabled, true) });
+    });
+    settings.prompt_order = [
+      {
+        character_id: promptOrderCharacterId,
+        order: mergedOrder
+      }
+    ];
+    const mergedApiSetting = { ...preset.other || {}, ...utilityPromptsToApiSetting(preset) };
+    Object.keys(mergedApiSetting).forEach((k) => {
+      if (k === "prompts" || k === "prompt_order")
+        return;
+      snapshot.apiSetting.set(k, { hadOwn: Object.prototype.hasOwnProperty.call(settings, k), value: settings[k] });
+      settings[k] = mergedApiSetting[k];
     });
     const restore = () => {
       settings.prompts = snapshot.prompts;
@@ -6817,6 +6965,121 @@ var __publicField = (obj, key, value) => {
     }
     return result;
   }
+  function makeTempWorldInfoName() {
+    return `__st_api_tmp_wi__${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
+  function normalizeWorldInfoEntriesMap(raw) {
+    const out = {};
+    if (!raw || typeof raw !== "object")
+      return out;
+    for (const [k, v] of Object.entries(raw)) {
+      const keyUid = Number(k);
+      if (!Number.isFinite(keyUid))
+        continue;
+      const entry = v && typeof v === "object" ? { ...v } : { uid: keyUid };
+      const uid2 = Number(entry.uid);
+      const finalUid = Number.isFinite(uid2) ? uid2 : keyUid;
+      entry.uid = finalUid;
+      out[finalUid] = entry;
+    }
+    return out;
+  }
+  function mergeWorldInfoEntriesByComment(baseRaw, injectedRaw) {
+    const base = normalizeWorldInfoEntriesMap(baseRaw);
+    const injected = normalizeWorldInfoEntriesMap(injectedRaw);
+    const merged = { ...base };
+    const nameToUid = /* @__PURE__ */ new Map();
+    const usedUids = /* @__PURE__ */ new Set();
+    let maxUid = -1;
+    for (const [uidStr, entry] of Object.entries(merged)) {
+      const uid2 = Number(uidStr);
+      if (!Number.isFinite(uid2))
+        continue;
+      usedUids.add(uid2);
+      maxUid = Math.max(maxUid, uid2);
+      const name = String((entry == null ? void 0 : entry.comment) ?? "").trim();
+      if (name && !nameToUid.has(name))
+        nameToUid.set(name, uid2);
+    }
+    const injectedEntries = Object.values(injected);
+    for (const e of injectedEntries) {
+      const name = String((e == null ? void 0 : e.comment) ?? "").trim();
+      if (name && nameToUid.has(name)) {
+        const targetUid = nameToUid.get(name);
+        merged[targetUid] = { ...merged[targetUid] ?? {}, ...e, uid: targetUid, comment: name };
+        continue;
+      }
+      let newUid = Number(e == null ? void 0 : e.uid);
+      if (!Number.isFinite(newUid) || usedUids.has(newUid)) {
+        newUid = maxUid + 1;
+        while (usedUids.has(newUid))
+          newUid++;
+      }
+      maxUid = Math.max(maxUid, newUid);
+      usedUids.add(newUid);
+      merged[newUid] = { ...e, uid: newUid, ...name ? { comment: name } : {} };
+      if (name && !nameToUid.has(name))
+        nameToUid.set(name, newUid);
+    }
+    return merged;
+  }
+  async function applyWorldbookOverrides(ctx, wbOpt, restorers) {
+    const mode = String((wbOpt == null ? void 0 : wbOpt.mode) ?? "current");
+    if (mode === "disable")
+      return true;
+    const injectBook = wbOpt == null ? void 0 : wbOpt.inject;
+    const replaceBook = wbOpt == null ? void 0 : wbOpt.replace;
+    if (injectBook && replaceBook) {
+      throw new Error("worldbook.inject and worldbook.replace are mutually exclusive");
+    }
+    if (!injectBook && !replaceBook)
+      return false;
+    if (!(ctx == null ? void 0 : ctx.chatMetadata))
+      throw new Error("chatMetadata not available in context");
+    const wi = await import("/scripts/world-info.js");
+    const worldInfoCache = wi == null ? void 0 : wi.worldInfoCache;
+    const loadWorldInfo = wi == null ? void 0 : wi.loadWorldInfo;
+    const selectedWorldInfo = wi == null ? void 0 : wi.selected_world_info;
+    const metadataKey = String((wi == null ? void 0 : wi.METADATA_KEY) || "world_info");
+    if (!worldInfoCache || typeof worldInfoCache.set !== "function") {
+      throw new Error("worldInfoCache is not available (failed to import /scripts/world-info.js)");
+    }
+    const chatMetadata = ctx.chatMetadata;
+    const snapshot = chatMetadata[metadataKey];
+    const tempName = makeTempWorldInfoName();
+    let entries = {};
+    if (replaceBook) {
+      entries = worldBookToStWorldInfo(replaceBook).entries;
+    } else if (injectBook) {
+      const injectedEntries = worldBookToStWorldInfo(injectBook).entries;
+      let baseEntries = {};
+      const currentName = snapshot;
+      const selected = Array.isArray(selectedWorldInfo) ? selectedWorldInfo : [];
+      if (typeof currentName === "string" && currentName.trim() !== "" && !selected.includes(currentName)) {
+        try {
+          const data = typeof loadWorldInfo === "function" ? await loadWorldInfo(currentName) : null;
+          if (data && typeof data === "object" && data.entries && typeof data.entries === "object") {
+            baseEntries = data.entries;
+          }
+        } catch {
+        }
+      }
+      entries = mergeWorldInfoEntriesByComment(baseEntries, injectedEntries);
+    }
+    worldInfoCache.set(tempName, { entries });
+    chatMetadata[metadataKey] = tempName;
+    restorers.push(() => {
+      try {
+        chatMetadata[metadataKey] = snapshot;
+      } catch {
+      }
+      try {
+        worldInfoCache.delete(tempName);
+      } catch {
+      }
+    });
+    return false;
+  }
   async function get$7(input) {
     const ctx = window.SillyTavern.getContext();
     const { eventSource, event_types, generate: generate2, characterId } = ctx;
@@ -6861,7 +7124,6 @@ var __publicField = (obj, key, value) => {
     });
   }
   async function buildRequest(input) {
-    var _a;
     const ctx = window.SillyTavern.getContext();
     const { eventSource, event_types, generate: generate2, characterId, mainApi } = ctx;
     const timeoutMs = (input == null ? void 0 : input.timeoutMs) ?? 8e3;
@@ -6872,13 +7134,11 @@ var __publicField = (obj, key, value) => {
     const restorers = [];
     let skipWIAN = false;
     try {
-      const presetOpt = (input == null ? void 0 : input.preset) ?? { mode: "current" };
-      if (presetOpt.mode === "inject") {
-        if (!presetOpt.preset)
-          throw new Error("preset.mode=inject requires preset.preset");
-        const applied = applyPresetToChatCompletionSettings(ctx.chatCompletionSettings, presetOpt.preset);
-        restorers.push(applied.restore);
-      } else if (presetOpt.mode === "disable") {
+      const presetOpt = input == null ? void 0 : input.preset;
+      const presetMode = String((presetOpt == null ? void 0 : presetOpt.mode) ?? "current");
+      const presetInject = presetOpt == null ? void 0 : presetOpt.inject;
+      const presetReplace = presetOpt == null ? void 0 : presetOpt.replace;
+      if (presetMode === "disable") {
         const settings = ctx.chatCompletionSettings;
         const snapshot = { prompt_order: settings == null ? void 0 : settings.prompt_order };
         const promptOrderCharacterId = detectPromptOrderCharacterId(settings, 100001);
@@ -6892,21 +7152,19 @@ var __publicField = (obj, key, value) => {
         restorers.push(() => {
           settings.prompt_order = snapshot.prompt_order;
         });
+      } else if (presetInject || presetReplace) {
+        if (presetInject && presetReplace) {
+          throw new Error("preset.inject and preset.replace are mutually exclusive");
+        }
+        if (presetReplace) {
+          const applied = applyPresetToChatCompletionSettings(ctx.chatCompletionSettings, presetReplace);
+          restorers.push(applied.restore);
+        } else if (presetInject) {
+          const applied = applyPresetPatchToChatCompletionSettings(ctx.chatCompletionSettings, presetInject);
+          restorers.push(applied.restore);
+        }
       }
-      const wbOpt = (input == null ? void 0 : input.worldbook) ?? { mode: "current" };
-      if (wbOpt.mode === "disable") {
-        skipWIAN = true;
-      } else if (wbOpt.mode === "inject") {
-        if (!wbOpt.worldBook)
-          throw new Error("worldbook.mode=inject requires worldbook.worldBook");
-        const snapshot = (_a = ctx.chatMetadata) == null ? void 0 : _a.world_info;
-        if (!ctx.chatMetadata)
-          throw new Error("chatMetadata not available in context");
-        ctx.chatMetadata.world_info = worldBookToStWorldInfo(wbOpt.worldBook);
-        restorers.push(() => {
-          ctx.chatMetadata.world_info = snapshot;
-        });
-      }
+      skipWIAN = await applyWorldbookOverrides(ctx, input == null ? void 0 : input.worldbook, restorers);
       const chOpt = input == null ? void 0 : input.chatHistory;
       const replaceMessages = chOpt == null ? void 0 : chOpt.replace;
       const injectBlocks = (chOpt == null ? void 0 : chOpt.inject) ?? [];
@@ -7027,7 +7285,6 @@ var __publicField = (obj, key, value) => {
     }
   }
   async function generate(input) {
-    var _a;
     const ctx = window.SillyTavern.getContext();
     const {
       eventSource,
@@ -7135,13 +7392,11 @@ var __publicField = (obj, key, value) => {
       data.chat = insertExtraBlocks(data.chat, input.extraBlocks);
     };
     try {
-      const presetOpt = (input == null ? void 0 : input.preset) ?? { mode: "current" };
-      if (presetOpt.mode === "inject") {
-        if (!presetOpt.preset)
-          throw new Error("preset.mode=inject requires preset.preset");
-        const applied = applyPresetToChatCompletionSettings(ctx.chatCompletionSettings, presetOpt.preset);
-        restorers.push(applied.restore);
-      } else if (presetOpt.mode === "disable") {
+      const presetOpt = input == null ? void 0 : input.preset;
+      const presetMode = String((presetOpt == null ? void 0 : presetOpt.mode) ?? "current");
+      const presetInject = presetOpt == null ? void 0 : presetOpt.inject;
+      const presetReplace = presetOpt == null ? void 0 : presetOpt.replace;
+      if (presetMode === "disable") {
         const settings = ctx.chatCompletionSettings;
         const snapshot = { prompt_order: settings == null ? void 0 : settings.prompt_order };
         const promptOrderCharacterId = detectPromptOrderCharacterId(settings, 100001);
@@ -7155,21 +7410,19 @@ var __publicField = (obj, key, value) => {
         restorers.push(() => {
           settings.prompt_order = snapshot.prompt_order;
         });
+      } else if (presetInject || presetReplace) {
+        if (presetInject && presetReplace) {
+          throw new Error("preset.inject and preset.replace are mutually exclusive");
+        }
+        if (presetReplace) {
+          const applied = applyPresetToChatCompletionSettings(ctx.chatCompletionSettings, presetReplace);
+          restorers.push(applied.restore);
+        } else if (presetInject) {
+          const applied = applyPresetPatchToChatCompletionSettings(ctx.chatCompletionSettings, presetInject);
+          restorers.push(applied.restore);
+        }
       }
-      const wbOpt = (input == null ? void 0 : input.worldbook) ?? { mode: "current" };
-      if (wbOpt.mode === "disable") {
-        skipWIAN = true;
-      } else if (wbOpt.mode === "inject") {
-        if (!wbOpt.worldBook)
-          throw new Error("worldbook.mode=inject requires worldbook.worldBook");
-        const snapshot = (_a = ctx.chatMetadata) == null ? void 0 : _a.world_info;
-        if (!ctx.chatMetadata)
-          throw new Error("chatMetadata not available in context");
-        ctx.chatMetadata.world_info = worldBookToStWorldInfo(wbOpt.worldBook);
-        restorers.push(() => {
-          ctx.chatMetadata.world_info = snapshot;
-        });
-      }
+      skipWIAN = await applyWorldbookOverrides(ctx, input == null ? void 0 : input.worldbook, restorers);
       return await new Promise((resolve, reject) => {
         let done = false;
         let timer;
@@ -8855,6 +9108,102 @@ var __publicField = (obj, key, value) => {
     }
   }
   const CHAT_API_TYPE = "openai";
+  function readString(v) {
+    if (v === void 0 || v === null)
+      return void 0;
+    return typeof v === "string" ? v : String(v);
+  }
+  function readNumber(v) {
+    if (v === void 0 || v === null)
+      return void 0;
+    if (typeof v === "number" && Number.isFinite(v))
+      return v;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : void 0;
+  }
+  function getFirstDefined(obj, keys) {
+    for (const k of keys) {
+      if (obj && Object.prototype.hasOwnProperty.call(obj, k) && obj[k] !== void 0) {
+        return obj[k];
+      }
+    }
+    return void 0;
+  }
+  const UTILITY_PROMPT_KEYS = [
+    // snake_case (ST)
+    "impersonation_prompt",
+    "wi_format",
+    "scenario_format",
+    "personality_format",
+    "group_nudge_prompt",
+    "new_chat_prompt",
+    "new_group_chat_prompt",
+    "new_example_chat_prompt",
+    "continue_nudge_prompt",
+    "send_if_empty",
+    "seed",
+    // camelCase aliases (best-effort)
+    "impersonationPrompt",
+    "wiFormat",
+    "worldInfoFormat",
+    "scenarioFormat",
+    "personalityFormat",
+    "groupNudgePrompt",
+    "newChatPrompt",
+    "newGroupChatPrompt",
+    "newExampleChatPrompt",
+    "continueNudgePrompt",
+    "sendIfEmpty"
+  ];
+  function stripUtilityPromptFields(other) {
+    if (!other || typeof other !== "object" || Array.isArray(other))
+      return;
+    for (const k of UTILITY_PROMPT_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(other, k)) {
+        delete other[k];
+      }
+    }
+  }
+  function assertNoUtilityPromptFieldsInOther(other, where) {
+    if (!other || typeof other !== "object" || Array.isArray(other))
+      return;
+    const found = UTILITY_PROMPT_KEYS.find((k) => Object.prototype.hasOwnProperty.call(other, k));
+    if (!found)
+      return;
+    throw new Error(`[ST API] ${where}: Utility prompt field "${String(found)}" is not allowed in "other". Please put it in "utilityPrompts" instead.`);
+  }
+  function mergeUtilityPrompts(base, patch) {
+    return {
+      impersonationPrompt: patch.impersonationPrompt ?? base.impersonationPrompt,
+      worldInfoFormat: patch.worldInfoFormat ?? base.worldInfoFormat,
+      scenarioFormat: patch.scenarioFormat ?? base.scenarioFormat,
+      personalityFormat: patch.personalityFormat ?? base.personalityFormat,
+      groupNudgePrompt: patch.groupNudgePrompt ?? base.groupNudgePrompt,
+      newChatPrompt: patch.newChatPrompt ?? base.newChatPrompt,
+      newGroupChatPrompt: patch.newGroupChatPrompt ?? base.newGroupChatPrompt,
+      newExampleChatPrompt: patch.newExampleChatPrompt ?? base.newExampleChatPrompt,
+      continueNudgePrompt: patch.continueNudgePrompt ?? base.continueNudgePrompt,
+      sendIfEmpty: patch.sendIfEmpty ?? base.sendIfEmpty,
+      seed: patch.seed ?? base.seed
+    };
+  }
+  function extractUtilityPrompts(other) {
+    const s = (keys) => readString(getFirstDefined(other, keys));
+    const n = (keys) => readNumber(getFirstDefined(other, keys));
+    return {
+      impersonationPrompt: s(["impersonation_prompt", "impersonationPrompt"]),
+      worldInfoFormat: s(["wi_format", "wiFormat", "worldInfoFormat"]),
+      scenarioFormat: s(["scenario_format", "scenarioFormat"]),
+      personalityFormat: s(["personality_format", "personalityFormat"]),
+      groupNudgePrompt: s(["group_nudge_prompt", "groupNudgePrompt"]),
+      newChatPrompt: s(["new_chat_prompt", "newChatPrompt"]),
+      newGroupChatPrompt: s(["new_group_chat_prompt", "newGroupChatPrompt"]),
+      newExampleChatPrompt: s(["new_example_chat_prompt", "newExampleChatPrompt"]),
+      continueNudgePrompt: s(["continue_nudge_prompt", "continueNudgePrompt"]),
+      sendIfEmpty: s(["send_if_empty", "sendIfEmpty"]),
+      seed: n(["seed"])
+    };
+  }
   function getPresetManager() {
     const ctx = window.SillyTavern.getContext();
     const manager = ctx.getPresetManager(CHAT_API_TYPE);
@@ -8863,7 +9212,7 @@ var __publicField = (obj, key, value) => {
     return manager;
   }
   function transformPreset(name, settings) {
-    const { prompts: rawPrompts = [], prompt_order: rawOrder = [], ...apiSetting } = settings || {};
+    const { prompts: rawPrompts = [], prompt_order: rawOrder = [], ...other } = settings || {};
     let activeOrderList = [];
     if (Array.isArray(rawOrder) && rawOrder[0] && Array.isArray(rawOrder[0].order)) {
       activeOrderList = rawOrder[0].order;
@@ -8905,20 +9254,23 @@ var __publicField = (obj, key, value) => {
       const bIdx = b.index !== void 0 ? b.index : Infinity;
       return aIdx - bIdx;
     });
-    const apiSettingOut = apiSetting || {};
-    const regexScripts = readPresetRegexScripts(apiSettingOut);
+    const otherOut = other || {};
+    const regexScripts = readPresetRegexScripts(otherOut);
+    const utilityPrompts = extractUtilityPrompts(otherOut);
+    stripUtilityPromptFields(otherOut);
     return {
       name: name || "Default",
       prompts: mergedPrompts,
+      utilityPrompts,
       regexScripts,
-      apiSetting: apiSettingOut
+      other: otherOut
     };
   }
   function safeObject$1(x) {
     return x && typeof x === "object" && !Array.isArray(x) ? x : {};
   }
-  function readPresetRegexScripts(apiSetting) {
-    const ext = safeObject$1(apiSetting == null ? void 0 : apiSetting.extensions);
+  function readPresetRegexScripts(other) {
+    const ext = safeObject$1(other == null ? void 0 : other.extensions);
     const raw = ext.regex_scripts ?? ext.regexScripts ?? [];
     return (Array.isArray(raw) ? raw : []).filter(Boolean).map((x) => fromStRegex(x));
   }
@@ -8944,10 +9296,33 @@ var __publicField = (obj, key, value) => {
       order: rawOrder
     }];
     const out = {
-      ...preset.apiSetting,
+      ...preset.other,
       prompts: rawPrompts,
       prompt_order
     };
+    const up = preset.utilityPrompts ?? {};
+    if (up.impersonationPrompt !== void 0)
+      out.impersonation_prompt = up.impersonationPrompt;
+    if (up.worldInfoFormat !== void 0)
+      out.wi_format = up.worldInfoFormat;
+    if (up.scenarioFormat !== void 0)
+      out.scenario_format = up.scenarioFormat;
+    if (up.personalityFormat !== void 0)
+      out.personality_format = up.personalityFormat;
+    if (up.groupNudgePrompt !== void 0)
+      out.group_nudge_prompt = up.groupNudgePrompt;
+    if (up.newChatPrompt !== void 0)
+      out.new_chat_prompt = up.newChatPrompt;
+    if (up.newGroupChatPrompt !== void 0)
+      out.new_group_chat_prompt = up.newGroupChatPrompt;
+    if (up.newExampleChatPrompt !== void 0)
+      out.new_example_chat_prompt = up.newExampleChatPrompt;
+    if (up.continueNudgePrompt !== void 0)
+      out.continue_nudge_prompt = up.continueNudgePrompt;
+    if (up.sendIfEmpty !== void 0)
+      out.send_if_empty = up.sendIfEmpty;
+    if (up.seed !== void 0)
+      out.seed = up.seed;
     const ext = safeObject$1(out.extensions);
     const had = Object.prototype.hasOwnProperty.call(ext, "regex_scripts");
     if (Array.isArray(preset.regexScripts) && preset.regexScripts.length > 0 || had) {
@@ -9012,8 +9387,15 @@ var __publicField = (obj, key, value) => {
     const templateName = presetManager.getSelectedPresetName();
     const templateRaw = templateName ? getRawSettings(templateName) : {};
     const basePreset = transformPreset(input.name, JSON.parse(JSON.stringify(templateRaw)));
-    if (input.apiSetting) {
-      basePreset.apiSetting = { ...basePreset.apiSetting, ...input.apiSetting };
+    if (Object.prototype.hasOwnProperty.call(input, "apiSetting")) {
+      throw new Error('[ST API] preset.create: "apiSetting" has been renamed to "other". Please use "other".');
+    }
+    if (input.other) {
+      assertNoUtilityPromptFieldsInOther(input.other, "preset.create(other)");
+      basePreset.other = { ...basePreset.other, ...input.other };
+    }
+    if (input.utilityPrompts) {
+      basePreset.utilityPrompts = mergeUtilityPrompts(basePreset.utilityPrompts, input.utilityPrompts);
     }
     if (input.prompts) {
       basePreset.prompts = input.prompts;
@@ -9021,7 +9403,7 @@ var __publicField = (obj, key, value) => {
     if (Array.isArray(input.regexScripts)) {
       basePreset.regexScripts = input.regexScripts;
     } else {
-      basePreset.regexScripts = readPresetRegexScripts(basePreset.apiSetting);
+      basePreset.regexScripts = readPresetRegexScripts(basePreset.other);
     }
     const rawToSave = revertPreset(basePreset);
     await presetManager.savePreset(input.name, rawToSave);
@@ -9033,8 +9415,15 @@ var __publicField = (obj, key, value) => {
     if (!raw)
       throw new Error(`Preset not found: ${input.name}`);
     const preset = transformPreset(input.name, JSON.parse(JSON.stringify(raw)));
-    if (input.apiSetting) {
-      preset.apiSetting = { ...preset.apiSetting, ...input.apiSetting };
+    if (Object.prototype.hasOwnProperty.call(input, "apiSetting")) {
+      throw new Error('[ST API] preset.update: "apiSetting" has been renamed to "other". Please use "other".');
+    }
+    if (input.other) {
+      assertNoUtilityPromptFieldsInOther(input.other, "preset.update(other)");
+      preset.other = { ...preset.other, ...input.other };
+    }
+    if (input.utilityPrompts) {
+      preset.utilityPrompts = mergeUtilityPrompts(preset.utilityPrompts, input.utilityPrompts);
     }
     if (input.prompts) {
       preset.prompts = input.prompts;
@@ -9042,7 +9431,7 @@ var __publicField = (obj, key, value) => {
     if (Array.isArray(input.regexScripts)) {
       preset.regexScripts = input.regexScripts;
     } else {
-      preset.regexScripts = readPresetRegexScripts(preset.apiSetting);
+      preset.regexScripts = readPresetRegexScripts(preset.other);
     }
     const rawToSave = revertPreset(preset);
     const targetName = input.newName || input.name;
@@ -10148,6 +10537,18 @@ var __publicField = (obj, key, value) => {
     const v = (raw == null ? void 0 : raw.avatar) ?? (raw == null ? void 0 : raw.avatar_url) ?? (raw == null ? void 0 : raw.avatarUrl);
     return typeof v === "string" && v.trim() ? v.trim() : null;
   }
+  function avatarUrlFromName(name) {
+    const n = String(name ?? "").trim();
+    if (!n)
+      throw new Error("name is required");
+    return `${n}.png`;
+  }
+  function stripPngSuffix(nameOrAvatar) {
+    const v = String(nameOrAvatar ?? "").trim();
+    if (!v)
+      return v;
+    return v.toLowerCase().endsWith(".png") ? v.slice(0, -4) : v;
+  }
   function safeObject(x) {
     return x && typeof x === "object" && !Array.isArray(x) ? x : {};
   }
@@ -10206,9 +10607,7 @@ var __publicField = (obj, key, value) => {
     };
   }
   async function get$1(input) {
-    const avatarUrl = String((input == null ? void 0 : input.avatarUrl) || "").trim();
-    if (!avatarUrl)
-      throw new Error("avatarUrl is required");
+    const avatarUrl = avatarUrlFromName(input == null ? void 0 : input.name);
     const raw = await postJson("/api/characters/get", { avatar_url: avatarUrl }, "json");
     return { character: toCharacterCard(raw) };
   }
@@ -10222,7 +10621,7 @@ var __publicField = (obj, key, value) => {
       const avatar = getAvatarFromAny(c);
       if (!avatar)
         continue;
-      const full = await get$1({ avatarUrl: avatar });
+      const full = await get$1({ name: stripPngSuffix(avatar) });
       out.push(full.character);
     }
     return { characters: out };
@@ -10238,9 +10637,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function update(input) {
-    const avatarUrl = String((input == null ? void 0 : input.avatarUrl) || "").trim();
-    if (!avatarUrl)
-      throw new Error("avatarUrl is required");
+    const avatarUrl = avatarUrlFromName(input == null ? void 0 : input.name);
     const patch = (input == null ? void 0 : input.patch) ?? {};
     if (!patch || typeof patch !== "object" || Array.isArray(patch)) {
       throw new Error("patch must be an object");
@@ -10250,7 +10647,7 @@ var __publicField = (obj, key, value) => {
       ...patch
     }, "void");
     if (input == null ? void 0 : input.returnCharacter) {
-      const updated = await get$1({ avatarUrl });
+      const updated = await get$1({ name: input == null ? void 0 : input.name });
       return { ok: true, character: updated.character };
     }
     return { ok: true };

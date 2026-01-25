@@ -10,8 +10,8 @@
 
 同时支持最大程度的自定义：
 
-- **预设**：使用当前 / 禁用 / 使用注入的 `PresetInfo`（格式参考 `preset.get`）
-- **世界书**：使用当前 / 禁用 / 注入世界书（作为 chat worldbook）
+- **预设**：使用当前 / 禁用 / 注入（合并）/ 替换 `PresetInfo`（格式参考 `preset.get`）
+- **世界书**：使用当前 / 禁用 / 注入（合并）/ 替换世界书（作为 chat lorebook）
 - **聊天记录**：使用当前 / 注入 `ChatMessage[]`（wrapper 格式）
 - **额外块**：直接插入 `{role, content}` 段落到最终 `messages[]`
 
@@ -23,21 +23,30 @@
 | --- | --- | --- | --- |
 | timeoutMs | number | 8000 | 超时（毫秒）。 |
 | forceCharacterId | number | - | 可选：强制指定角色 ID。 |
-| preset | { mode, preset? } | `{mode:'current'}` | 预设策略。`inject` 时必须提供 `preset`（`PresetInfo`）。 |
-| worldbook | { mode, worldBook? } | `{mode:'current'}` | 世界书策略。`disable` 会设置 `skipWIAN=true`（同时跳过世界书与作者注释）。`inject` 时必须提供 `worldBook`（`WorldBook`）。 |
+| preset | { mode?, inject?, replace? } | `{mode:'current'}` | 预设策略：`inject` 为合并（同名 identifier 覆盖），`replace` 为整段替换。`inject` 与 `replace` 互斥。 |
+| worldbook | { mode?, inject?, replace? } | `{mode:'current'}` | 世界书策略：`inject` 为合并（同名条目 comment 覆盖），`replace` 为整本替换（结束回滚，不落盘）。`disable` 会设置 `skipWIAN=true`（同时跳过世界书与作者注释）。`inject` 与 `replace` 互斥。 |
 | chatHistory | { replace?, inject? } | - | 聊天记录：`replace` 负责整段替换；`inject` 负责按 depth/order 注入历史块。 |
 | extraBlocks | ExtraMessageBlock[] | - | 额外消息段插入（仅对 Chat Completions 生效）。 |
 | includeGenerateData | boolean | false | 是否尝试构造更接近后端的 payload。openai 会调用 `/scripts/openai.js` 的 `createGenerationParameters`。 |
 
-### preset.mode
-- `current`：使用当前酒馆预设（不做改动）
-- `disable`：临时把当前 prompts 全部置为 disabled（仅影响本次 build）
-- `inject`：临时应用你注入的 `PresetInfo`
+### preset
+- `mode`：`current`（默认）或 `disable`。
+  - `disable` 会临时把当前 prompts 全部置为 disabled（仅影响本次 build）。
+  - 若 `mode='disable'`，则会忽略 `inject/replace`。
+- `inject`：将你提供的 `PresetInfo` 作为 patch 合并到当前预设（同名 identifier 覆盖）。
+- `replace`：本次 build 整体替换为你提供的 `PresetInfo`。
 
-### worldbook.mode
-- `current`：使用当前世界书设置
-- `disable`：不使用世界书（通过 `skipWIAN`）
-- `inject`：临时把 `chatMetadata.world_info` 替换成你提供的 `WorldBook`（仅本次 build）
+> 说明：`inject` 与 `replace` 互斥。
+> 另外：`PresetInfo` 支持 `utilityPrompts`（例如 `newChatPrompt`、`worldInfoFormat` 等），可以随 `inject/replace` 一并传入并生效；请放在 `preset.utilityPrompts` 中，不要混在 `preset.other` 里。
+
+### worldbook
+- `mode`：`current`（默认）或 `disable`。
+  - `disable` 会设置 `skipWIAN=true`（跳过世界书与作者注释）。
+  - 若 `mode='disable'`，则会忽略 `inject/replace`。
+- `replace`：本次 build 使用你提供的 `WorldBook` 作为 chat lorebook（结束回滚，不落盘）。
+- `inject`：本次 build 将你提供的 `WorldBook` 条目合并到当前 chat lorebook（同名 comment 覆盖，结束回滚）。
+
+> 说明：实现上会用临时书名写入 `worldInfoCache`，并把 `chat_metadata['world_info']` 临时指向该书名。
 
 ### chatHistory.replace（整段替换聊天记录）
 你可以理解为：本次 dry-run 临时换了一份“聊天历史”。结束会自动回滚。
@@ -89,7 +98,7 @@ const injectedPreset = (await ST_API.preset.get({ name: 'Default' })).preset;
 if (!injectedPreset) throw new Error('preset not found');
 
 const res = await ST_API.prompt.buildRequest({
-  preset: { mode: 'inject', preset: injectedPreset },
+  preset: { inject: injectedPreset },
 });
 console.log(res.chatCompletionMessages);
 ```
@@ -108,7 +117,7 @@ const res = await ST_API.prompt.buildRequest({
 const book = await ST_API.worldbook.get({ name: 'Current Chat', scope: 'chat' });
 
 const res = await ST_API.prompt.buildRequest({
-  worldbook: { mode: 'inject', worldBook: book.worldBook },
+  worldbook: { replace: book.worldBook },
 });
 ```
 
@@ -166,4 +175,73 @@ console.log(res.generateData);
 ```
 
 > 说明：openai 的 `generateData` 会调用酒馆前端模块 `/scripts/openai.js` 的 `createGenerationParameters` 生成；非 openai 则直接复用酒馆 dry-run 阶段的 `generate_after_data`。
+
+---
+
+## 调试 / 验证：worldbook.replace / worldbook.inject 是否生效
+
+前置条件：
+- 已在酒馆里启用 `st-api-wrapper` 扩展，并能在控制台访问 `window.ST_API`
+- 当前使用 Chat Completions（如 OpenAI）时更直观：注入内容会出现在 `chatCompletionMessages` 的 `system` 段里
+
+下面脚本会：
+1) 在某本世界书里创建一个“关键词必命中”的条目（key=你好）
+2) 用 `chatHistory.replace` 固定构造一段包含“你好”的聊天
+3) 调用 `prompt.buildRequest` 并检查 messages 中是否包含该条目内容
+4) 最后清理临时条目
+
+```typescript
+(async () => {
+  const bookName = "StepWorkflow_Test_WB";
+  const scope = "global";
+
+  // 0) 确保世界书存在（已存在会报错，忽略即可）
+  try {
+    await ST_API.worldbook.create({ name: bookName, scope });
+  } catch {}
+
+  // 1) 创建一个一定会命中的 keyword 条目（key=你好）
+  const created = await ST_API.worldbook.createEntry({
+    name: bookName,
+    scope,
+    entry: {
+      name: "WF_DEBUG_KEYWORD",
+      activationMode: "keyword",
+      key: ["你好"],
+      enabled: true,
+      position: "beforeChar",
+      order: 0,
+      content: "【WF_DEBUG_KEYWORD】如果你能在 messages 里看到我，说明 worldbook 注入生效。",
+    },
+  });
+  const idx = created?.entry?.index;
+
+  // 2) buildRequest：注入世界书并打印 messages
+  const wb = (await ST_API.worldbook.get({ name: bookName, scope })).worldBook;
+
+  const br = await ST_API.prompt.buildRequest({
+    // 用固定聊天保证关键词命中（不影响真实聊天，结束自动回滚）
+    chatHistory: {
+      replace: [
+        { role: "system", parts: [{ text: "你现在是一个更加专业的助手。" }] },
+        { role: "user", parts: [{ text: "你好" }] },
+      ],
+    },
+
+    // 你也可以把 replace 改成 inject（语义：合并到当前 chat lorebook）
+    worldbook: { replace: wb },
+  });
+
+  console.log("messages =", br.chatCompletionMessages);
+  console.log(
+    "hasDebugWB =",
+    (br.chatCompletionMessages ?? []).some((m) => String(m?.content ?? "").includes("WF_DEBUG_KEYWORD")),
+  );
+
+  // 3) 清理：删除临时条目
+  if (typeof idx === "number") {
+    await ST_API.worldbook.deleteEntry({ name: bookName, scope, index: idx });
+  }
+})();
+```
 
