@@ -24,6 +24,10 @@
 
 - [ui.scrollChat](./scrollChat.md)：滚动聊天记录到指定位置
 
+## 输入栏
+
+- [ui.setSendBusy](./setSendBusy.md)：设置发送按钮等待态（不阻断发送）
+
 ## 消息按钮
 
 - [ui.registerMessageButton](./registerMessageButton.md)：注册消息操作按钮（与 Edit 同级）

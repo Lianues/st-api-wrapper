@@ -155,6 +155,31 @@ export interface ReloadSettingsOutput {
 }
 
 // ============================================================================
+// Send Button Busy (发送按钮等待态)
+// ============================================================================
+
+export interface SetSendBusyInput {
+  /**
+   * 调用方标识（用于多插件并发时的引用计数/互不抢状态）。
+   * 建议使用 `插件名` 或 `插件名.功能名`。
+   */
+  owner: string;
+
+  /**
+   * 是否进入等待态
+   */
+  busy: boolean;
+}
+
+export interface SetSendBusyOutput {
+  ok: true;
+  /** 当前是否处于等待态（任意 owner busy 即为 true） */
+  busy: boolean;
+  /** 当前持有 busy 的 owner 列表 */
+  owners: string[];
+}
+
+// ============================================================================
 // Top Settings Drawer (顶部设置抽屉，类似 #sys-settings-button)
 // ============================================================================
 

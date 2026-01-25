@@ -7870,6 +7870,103 @@ var __publicField = (obj, key, value) => {
     }
     return { ok: true };
   }
+  const sendBusyOwners = /* @__PURE__ */ new Set();
+  let sendBusyOriginalIconClasses = null;
+  const FA_NON_ICON_NAME_CLASSES = /* @__PURE__ */ new Set([
+    // base
+    "fa",
+    // styles
+    "fa-solid",
+    "fa-regular",
+    "fa-light",
+    "fa-thin",
+    "fa-duotone",
+    "fa-brands",
+    "fa-sharp",
+    "fa-sharp-solid",
+    "fa-sharp-regular",
+    "fa-sharp-light",
+    "fa-sharp-thin",
+    "fa-sharp-duotone",
+    // modifiers / sizing
+    "fa-fw",
+    "fa-spin",
+    "fa-spin-pulse",
+    "fa-pulse",
+    "fa-beat",
+    "fa-fade",
+    "fa-bounce",
+    "fa-flip",
+    "fa-shake",
+    "fa-rotate-90",
+    "fa-rotate-180",
+    "fa-rotate-270",
+    "fa-xs",
+    "fa-sm",
+    "fa-lg",
+    "fa-xl",
+    "fa-2xl",
+    "fa-2x",
+    "fa-3x",
+    "fa-4x",
+    "fa-5x",
+    "fa-6x",
+    "fa-7x",
+    "fa-8x",
+    "fa-9x",
+    "fa-10x",
+    "fa-border",
+    "fa-inverse",
+    "fa-stack",
+    "fa-stack-1x",
+    "fa-stack-2x",
+    "fa-swap-opacity"
+  ]);
+  function detectFaIconNameClasses(el) {
+    return Array.from(el.classList).filter((c) => c.startsWith("fa-") && !FA_NON_ICON_NAME_CLASSES.has(c));
+  }
+  function applySendButtonBusyIcon(el) {
+    if (!sendBusyOriginalIconClasses) {
+      const detected = detectFaIconNameClasses(el);
+      sendBusyOriginalIconClasses = detected.length > 0 ? detected : ["fa-paper-plane"];
+    }
+    detectFaIconNameClasses(el).forEach((c) => el.classList.remove(c));
+    el.classList.add("fa-solid");
+    el.classList.add("fa-spinner");
+    el.classList.add("fa-spin");
+  }
+  function restoreSendButtonBusyIcon(el) {
+    el.classList.remove("fa-spinner");
+    el.classList.remove("fa-spin");
+    detectFaIconNameClasses(el).forEach((c) => el.classList.remove(c));
+    (sendBusyOriginalIconClasses ?? []).forEach((c) => el.classList.add(c));
+    sendBusyOriginalIconClasses = null;
+  }
+  async function setSendBusy(input) {
+    const owner = String((input == null ? void 0 : input.owner) ?? "").trim();
+    if (!owner)
+      throw new Error("ui.setSendBusy requires a non-empty owner");
+    const busy = Boolean(input == null ? void 0 : input.busy);
+    if (!document.getElementById("send_but")) {
+      await waitAppReady$2();
+    }
+    const el = document.getElementById("send_but");
+    if (!el)
+      throw new Error("Send button (#send_but) not found");
+    const wasBusy = sendBusyOwners.size > 0;
+    if (busy) {
+      sendBusyOwners.add(owner);
+    } else {
+      sendBusyOwners.delete(owner);
+    }
+    const isBusy = sendBusyOwners.size > 0;
+    if (!wasBusy && isBusy) {
+      applySendButtonBusyIcon(el);
+    } else if (wasBusy && !isBusy) {
+      restoreSendButtonBusyIcon(el);
+    }
+    return { ok: true, busy: isBusy, owners: Array.from(sendBusyOwners) };
+  }
   const topDrawers = /* @__PURE__ */ new Map();
   async function registerTopSettingsDrawer(input) {
     await waitAppReady$2();
@@ -8390,6 +8487,10 @@ var __publicField = (obj, key, value) => {
     name: "reloadSettings",
     handler: reloadSettings
   };
+  const setSendBusyEndpoint = {
+    name: "setSendBusy",
+    handler: setSendBusy
+  };
   const registerTopSettingsDrawerEndpoint = {
     name: "registerTopSettingsDrawer",
     handler: registerTopSettingsDrawer
@@ -8438,6 +8539,7 @@ var __publicField = (obj, key, value) => {
       unregisterOptionsMenuItemEndpoint,
       reloadChatEndpoint,
       reloadSettingsEndpoint,
+      setSendBusyEndpoint,
       registerTopSettingsDrawerEndpoint,
       unregisterTopSettingsDrawerEndpoint,
       scrollChatEndpoint,

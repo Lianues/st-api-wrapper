@@ -58,6 +58,29 @@ await ST_API.hooks.install({
 
 ---
 
+## 只监听不阻断（block=false）
+
+如果你希望 **仍然走酒馆原生逻辑**（例如正常发送/生成），同时又想“监听到用户点击/按键”来做额外工作流（例如 UI 等待态、旁路调用后台插件），可以把对应 target 的 `block` 设为 `false`：
+
+```typescript
+await ST_API.hooks.install({
+  id: 'myHooks',
+  intercept: {
+    targets: ['sendButton', 'sendEnter'],
+    block: { sendButton: false, sendEnter: false },
+    onlyWhenSendOnEnter: true,
+  },
+  broadcast: { target: 'both' },
+});
+```
+
+说明：
+- 依然会广播 `intercept` 事件
+- payload 里的 `blocked` 会是 `false`
+- 酒馆原生 click/Enter 逻辑不会被 `preventDefault/stopImmediatePropagation` 阻断
+
+---
+
 ## 广播事件
 
 ### 事件名（默认）

@@ -34,6 +34,8 @@ import type {
   RegisterMessageHeaderElementOutput,
   UnregisterMessageHeaderElementInput,
   UnregisterMessageHeaderElementOutput,
+  SetSendBusyInput,
+  SetSendBusyOutput,
 } from './types';
 import {
   listSettingsPanels,
@@ -54,6 +56,7 @@ import {
   unregisterExtraMessageButton,
   registerMessageHeaderElement,
   unregisterMessageHeaderElement,
+  setSendBusy,
 } from './impl';
 
 const registerSettingsPanelEndpoint: EndpointDefinition<RegisterSettingsPanelInput, RegisterSettingsPanelOutput> = {
@@ -111,6 +114,11 @@ const reloadChatEndpoint: EndpointDefinition<void, ReloadChatOutput> = {
 const reloadSettingsEndpoint: EndpointDefinition<void, ReloadSettingsOutput> = {
   name: 'reloadSettings',
   handler: reloadSettings,
+};
+
+const setSendBusyEndpoint: EndpointDefinition<SetSendBusyInput, SetSendBusyOutput> = {
+  name: 'setSendBusy',
+  handler: setSendBusy,
 };
 
 const registerTopSettingsDrawerEndpoint: EndpointDefinition<
@@ -194,6 +202,7 @@ export const uiModuleDefinition: ApiModuleDefinition = {
     unregisterOptionsMenuItemEndpoint,
     reloadChatEndpoint,
     reloadSettingsEndpoint,
+    setSendBusyEndpoint,
     registerTopSettingsDrawerEndpoint,
     unregisterTopSettingsDrawerEndpoint,
     scrollChatEndpoint,

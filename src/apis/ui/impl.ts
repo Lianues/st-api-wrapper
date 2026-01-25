@@ -34,6 +34,8 @@ import type {
   UnregisterMessageHeaderElementInput,
   UnregisterMessageHeaderElementOutput,
   MessageContext,
+  SetSendBusyInput,
+  SetSendBusyOutput,
 } from './types';
 
 const panels = new Map<string, { cleanup?: () => void }>();
@@ -309,6 +311,132 @@ export async function reloadSettings(): Promise<ReloadSettingsOutput> {
   }
 
   return { ok: true };
+}
+
+// ============================================================================
+// Send Button Busy (发送按钮等待态)
+// ============================================================================
+
+const sendBusyOwners = new Set<string>();
+let sendBusyOriginalIconClasses: string[] | null = null;
+
+const FA_NON_ICON_NAME_CLASSES = new Set<string>([
+  // base
+  'fa',
+  // styles
+  'fa-solid',
+  'fa-regular',
+  'fa-light',
+  'fa-thin',
+  'fa-duotone',
+  'fa-brands',
+  'fa-sharp',
+  'fa-sharp-solid',
+  'fa-sharp-regular',
+  'fa-sharp-light',
+  'fa-sharp-thin',
+  'fa-sharp-duotone',
+  // modifiers / sizing
+  'fa-fw',
+  'fa-spin',
+  'fa-spin-pulse',
+  'fa-pulse',
+  'fa-beat',
+  'fa-fade',
+  'fa-bounce',
+  'fa-flip',
+  'fa-shake',
+  'fa-rotate-90',
+  'fa-rotate-180',
+  'fa-rotate-270',
+  'fa-xs',
+  'fa-sm',
+  'fa-lg',
+  'fa-xl',
+  'fa-2xl',
+  'fa-2x',
+  'fa-3x',
+  'fa-4x',
+  'fa-5x',
+  'fa-6x',
+  'fa-7x',
+  'fa-8x',
+  'fa-9x',
+  'fa-10x',
+  'fa-border',
+  'fa-inverse',
+  'fa-stack',
+  'fa-stack-1x',
+  'fa-stack-2x',
+  'fa-swap-opacity',
+]);
+
+function detectFaIconNameClasses(el: HTMLElement): string[] {
+  return Array.from(el.classList).filter((c) => c.startsWith('fa-') && !FA_NON_ICON_NAME_CLASSES.has(c));
+}
+
+function applySendButtonBusyIcon(el: HTMLElement) {
+  if (!sendBusyOriginalIconClasses) {
+    const detected = detectFaIconNameClasses(el);
+    // 兜底：酒馆默认发送按钮通常是 fa-paper-plane
+    sendBusyOriginalIconClasses = detected.length > 0 ? detected : ['fa-paper-plane'];
+  }
+
+  // 移除当前 icon name，避免出现多个 icon class 叠加导致显示不确定
+  detectFaIconNameClasses(el).forEach((c) => el.classList.remove(c));
+
+  // busy icon
+  el.classList.add('fa-solid');
+  el.classList.add('fa-spinner');
+  el.classList.add('fa-spin');
+}
+
+function restoreSendButtonBusyIcon(el: HTMLElement) {
+  // 移除 busy icon
+  el.classList.remove('fa-spinner');
+  el.classList.remove('fa-spin');
+
+  // 移除当前 icon name，再恢复原始 icon name
+  detectFaIconNameClasses(el).forEach((c) => el.classList.remove(c));
+  (sendBusyOriginalIconClasses ?? []).forEach((c) => el.classList.add(c));
+
+  sendBusyOriginalIconClasses = null;
+}
+
+/**
+ * 设置发送按钮等待态（不阻断发送逻辑，仅修改图标显示）
+ *
+ * - busy=true：将 #send_but 的 icon 临时替换为 spinner
+ * - busy=false：恢复原 icon（引用计数：所有 owner 都释放后才恢复）
+ */
+export async function setSendBusy(input: SetSendBusyInput): Promise<SetSendBusyOutput> {
+  const owner = String(input?.owner ?? '').trim();
+  if (!owner) throw new Error('ui.setSendBusy requires a non-empty owner');
+  const busy = Boolean(input?.busy);
+
+  // 尽量等 UI 就绪（但不强依赖特定设置面板）
+  if (!document.getElementById('send_but')) {
+    await waitAppReady();
+  }
+
+  const el = document.getElementById('send_but') as HTMLElement | null;
+  if (!el) throw new Error('Send button (#send_but) not found');
+
+  const wasBusy = sendBusyOwners.size > 0;
+  if (busy) {
+    sendBusyOwners.add(owner);
+  } else {
+    sendBusyOwners.delete(owner);
+  }
+  const isBusy = sendBusyOwners.size > 0;
+
+  if (!wasBusy && isBusy) {
+    applySendButtonBusyIcon(el);
+  } else if (wasBusy && !isBusy) {
+    restoreSendButtonBusyIcon(el);
+  }
+
+  return { ok: true, busy: isBusy, owners: Array.from(sendBusyOwners) };
 }
 
 // ============================================================================
