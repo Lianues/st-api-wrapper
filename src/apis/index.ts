@@ -10,6 +10,7 @@ import { registerVariablesApis } from './variables';
 import { registerRegexScriptApis } from './regexScript';
 import { registerCharacterApis } from './character';
 import { registerSlashCommandApis } from './slashCommand';
+import { registerAvatarApis } from './avatar';
 
 export function registerAllApis(registry: ApiRegistry) {
   registerPromptApis(registry);
@@ -23,4 +24,5 @@ export function registerAllApis(registry: ApiRegistry) {
   registerRegexScriptApis(registry);
   registerCharacterApis(registry);
   registerSlashCommandApis(registry);
+  registerAvatarApis(registry);
 }

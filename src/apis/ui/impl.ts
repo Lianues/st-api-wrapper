@@ -19,6 +19,21 @@ import type {
   RegisterTopSettingsDrawerOutput,
   UnregisterTopSettingsDrawerInput,
   UnregisterTopSettingsDrawerOutput,
+  ScrollChatInput,
+  ScrollChatOutput,
+  RegisterMessageButtonInput,
+  RegisterMessageButtonOutput,
+  UnregisterMessageButtonInput,
+  UnregisterMessageButtonOutput,
+  RegisterExtraMessageButtonInput,
+  RegisterExtraMessageButtonOutput,
+  UnregisterExtraMessageButtonInput,
+  UnregisterExtraMessageButtonOutput,
+  RegisterMessageHeaderElementInput,
+  RegisterMessageHeaderElementOutput,
+  UnregisterMessageHeaderElementInput,
+  UnregisterMessageHeaderElementOutput,
+  MessageContext,
 } from './types';
 
 const panels = new Map<string, { cleanup?: () => void }>();
@@ -476,4 +491,591 @@ export async function unregisterTopSettingsDrawer(
   topDrawers.delete(input.id);
 
   return { ok: true };
+}
+
+// ============================================================================
+// Chat Scroll (聊天滚动)
+// ============================================================================
+
+/**
+ * 滚动聊天记录
+ *
+ * 支持滚动到顶部、底部或指定消息位置。
+ */
+export async function scrollChat(
+  input: ScrollChatInput
+): Promise<ScrollChatOutput> {
+  await waitAppReady();
+
+  const chatContainer = document.getElementById('chat');
+  if (!chatContainer) {
+    return { ok: false };
+  }
+
+  const behavior = input.behavior ?? 'smooth';
+  const target = input.target ?? 'bottom';
+
+  if (target === 'bottom') {
+    // 滚动到底部
+    chatContainer.scrollTo({
+      top: chatContainer.scrollHeight,
+      behavior,
+    });
+  } else if (target === 'top') {
+    // 滚动到顶部
+    chatContainer.scrollTo({
+      top: 0,
+      behavior,
+    });
+  } else if (typeof target === 'number') {
+    // 滚动到指定消息
+    const message = chatContainer.querySelector(`.mes[mesid="${target}"]`);
+    if (message) {
+      message.scrollIntoView({
+        behavior,
+        block: 'center',
+      });
+    } else {
+      return { ok: false };
+    }
+  }
+
+  return {
+    ok: true,
+    scrollTop: chatContainer.scrollTop,
+  };
+}
+
+// ============================================================================
+// Message Button (消息按钮)
+// ============================================================================
+
+/** 存储已注册的消息按钮配置 */
+const messageButtons = new Map<string, RegisterMessageButtonInput>();
+
+/** MutationObserver 实例，用于监听新消息 */
+let messageObserver: MutationObserver | null = null;
+
+/**
+ * 为单个消息添加按钮
+ */
+function addButtonToMessage(
+  mesElement: HTMLElement,
+  config: RegisterMessageButtonInput
+): void {
+  const mesId = parseInt(mesElement.getAttribute('mesid') || '-1', 10);
+  if (mesId < 0) return;
+
+  const buttonsContainer = mesElement.querySelector('.mes_buttons');
+  if (!buttonsContainer) return;
+
+  // 检查是否已添加
+  const buttonId = `st-api-mes-btn-${sanitizeForId(config.id)}`;
+  if (buttonsContainer.querySelector(`[data-st-btn-id="${buttonId}"]`)) return;
+
+  // 创建按钮
+  const btn = document.createElement('div');
+  btn.className = `mes_button ${config.icon} interactable`;
+  btn.title = config.title;
+  btn.tabIndex = 0;
+  btn.setAttribute('role', 'button');
+  btn.setAttribute('data-st-btn-id', buttonId);
+
+  // 绑定点击事件
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    config.onClick(mesId, mesElement);
+  });
+
+  // 支持键盘操作
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      config.onClick(mesId, mesElement);
+    }
+  });
+
+  // 计算插入位置
+  // 默认按钮顺序: extraMesButtonsHint, extraMesButtons, mes_bookmark, mes_edit, [自定义按钮]
+  // index 0 表示插入到 mes_edit 之后的第一个位置
+  const existingCustomButtons = buttonsContainer.querySelectorAll('[data-st-btn-id]');
+  const mesEditBtn = buttonsContainer.querySelector('.mes_edit');
+
+  if (typeof config.index === 'number' && config.index >= 0) {
+    // 找到正确的插入位置
+    let targetIndex = config.index;
+    let insertBefore: Element | null = null;
+
+    // 获取所有自定义按钮并按 index 排序
+    const customBtns = Array.from(existingCustomButtons);
+    
+    if (targetIndex < customBtns.length) {
+      insertBefore = customBtns[targetIndex];
+    } else if (mesEditBtn?.nextElementSibling) {
+      // 如果 index 超出范围，插入到末尾
+      insertBefore = null;
+    }
+
+    if (insertBefore) {
+      buttonsContainer.insertBefore(btn, insertBefore);
+    } else if (mesEditBtn) {
+      // 插入到 mes_edit 之后
+      mesEditBtn.insertAdjacentElement('afterend', btn);
+    } else {
+      buttonsContainer.appendChild(btn);
+    }
+  } else {
+    // 默认追加到末尾
+    if (mesEditBtn) {
+      mesEditBtn.insertAdjacentElement('afterend', btn);
+    } else {
+      buttonsContainer.appendChild(btn);
+    }
+  }
+}
+
+/**
+ * 从单个消息移除按钮
+ */
+function removeButtonFromMessage(
+  mesElement: HTMLElement,
+  buttonId: string
+): boolean {
+  const btn = mesElement.querySelector(`[data-st-btn-id="st-api-mes-btn-${sanitizeForId(buttonId)}"]`);
+  if (btn) {
+    btn.remove();
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 为所有现有消息添加按钮
+ */
+function applyButtonToAllMessages(config: RegisterMessageButtonInput): number {
+  const messages = document.querySelectorAll('#chat .mes');
+  let count = 0;
+  messages.forEach((mes) => {
+    addButtonToMessage(mes as HTMLElement, config);
+    count++;
+  });
+  return count;
+}
+
+/**
+ * 确保 MutationObserver 正在运行
+ */
+function ensureMessageObserver(): void {
+  if (messageObserver) return;
+
+  const chatContainer = document.getElementById('chat');
+  if (!chatContainer) return;
+
+  messageObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node instanceof HTMLElement && node.classList.contains('mes')) {
+          // 为新消息添加所有已注册的按钮
+          messageButtons.forEach((config) => {
+            addButtonToMessage(node, config);
+          });
+          // 为新消息添加所有已注册的扩展按钮
+          extraMessageButtons.forEach((config) => {
+            addExtraButtonToMessage(node, config);
+          });
+          // 为新消息添加所有已注册的标题元素
+          messageHeaderElements.forEach((config) => {
+            addHeaderElementToMessage(node, config);
+          });
+        }
+      });
+    });
+  });
+
+  messageObserver.observe(chatContainer, { childList: true });
+}
+
+/**
+ * 注册消息按钮
+ */
+export async function registerMessageButton(
+  input: RegisterMessageButtonInput
+): Promise<RegisterMessageButtonOutput> {
+  await waitAppReady();
+
+  if (messageButtons.has(input.id)) {
+    throw new Error(`Message button ID already registered: ${input.id}`);
+  }
+
+  // 保存配置
+  messageButtons.set(input.id, input);
+
+  // 确保观察器运行
+  ensureMessageObserver();
+
+  // 应用到所有现有消息
+  const appliedCount = applyButtonToAllMessages(input);
+
+  return {
+    id: input.id,
+    appliedCount,
+  };
+}
+
+/**
+ * 注销消息按钮
+ */
+export async function unregisterMessageButton(
+  input: UnregisterMessageButtonInput
+): Promise<UnregisterMessageButtonOutput> {
+  // 从所有消息中移除按钮
+  const messages = document.querySelectorAll('#chat .mes');
+  let removedCount = 0;
+  messages.forEach((mes) => {
+    if (removeButtonFromMessage(mes as HTMLElement, input.id)) {
+      removedCount++;
+    }
+  });
+
+  // 从注册表中移除
+  messageButtons.delete(input.id);
+
+  // 如果没有更多注册的按钮，可以停止观察器
+  if (messageButtons.size === 0 && extraMessageButtons.size === 0 && messageObserver) {
+    messageObserver.disconnect();
+    messageObserver = null;
+  }
+
+  return {
+    ok: true,
+    removedCount,
+  };
+}
+
+// ============================================================================
+// Extra Message Button (扩展消息按钮，在 ... 菜单内)
+// ============================================================================
+
+/** 存储已注册的扩展消息按钮配置 */
+const extraMessageButtons = new Map<string, RegisterExtraMessageButtonInput>();
+
+/**
+ * 为单个消息添加扩展按钮（在 .extraMesButtons 内）
+ */
+function addExtraButtonToMessage(
+  mesElement: HTMLElement,
+  config: RegisterExtraMessageButtonInput
+): void {
+  const mesId = parseInt(mesElement.getAttribute('mesid') || '-1', 10);
+  if (mesId < 0) return;
+
+  const extraButtonsContainer = mesElement.querySelector('.extraMesButtons');
+  if (!extraButtonsContainer) return;
+
+  // 检查是否已添加
+  const buttonId = `st-api-extra-btn-${sanitizeForId(config.id)}`;
+  if (extraButtonsContainer.querySelector(`[data-st-btn-id="${buttonId}"]`)) return;
+
+  // 创建按钮
+  const btn = document.createElement('div');
+  btn.className = `mes_button ${config.icon} interactable`;
+  btn.title = config.title;
+  btn.tabIndex = 0;
+  btn.setAttribute('role', 'button');
+  btn.setAttribute('data-st-btn-id', buttonId);
+  btn.setAttribute('data-i18n', `[title]${config.title}`);
+
+  // 绑定点击事件
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    config.onClick(mesId, mesElement);
+  });
+
+  // 支持键盘操作
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      config.onClick(mesId, mesElement);
+    }
+  });
+
+  // 计算插入位置
+  if (typeof config.index === 'number' && config.index >= 0) {
+    const children = extraButtonsContainer.children;
+    if (config.index < children.length) {
+      extraButtonsContainer.insertBefore(btn, children[config.index]);
+    } else {
+      extraButtonsContainer.appendChild(btn);
+    }
+  } else {
+    // 默认追加到末尾
+    extraButtonsContainer.appendChild(btn);
+  }
+}
+
+/**
+ * 从单个消息移除扩展按钮
+ */
+function removeExtraButtonFromMessage(
+  mesElement: HTMLElement,
+  buttonId: string
+): boolean {
+  const btn = mesElement.querySelector(`[data-st-btn-id="st-api-extra-btn-${sanitizeForId(buttonId)}"]`);
+  if (btn) {
+    btn.remove();
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 为所有现有消息添加扩展按钮
+ */
+function applyExtraButtonToAllMessages(config: RegisterExtraMessageButtonInput): number {
+  const messages = document.querySelectorAll('#chat .mes');
+  let count = 0;
+  messages.forEach((mes) => {
+    addExtraButtonToMessage(mes as HTMLElement, config);
+    count++;
+  });
+  return count;
+}
+
+/**
+ * 注册扩展消息按钮
+ */
+export async function registerExtraMessageButton(
+  input: RegisterExtraMessageButtonInput
+): Promise<RegisterExtraMessageButtonOutput> {
+  await waitAppReady();
+
+  if (extraMessageButtons.has(input.id)) {
+    throw new Error(`Extra message button ID already registered: ${input.id}`);
+  }
+
+  // 保存配置
+  extraMessageButtons.set(input.id, input);
+
+  // 确保观察器运行
+  ensureMessageObserver();
+
+  // 应用到所有现有消息
+  const appliedCount = applyExtraButtonToAllMessages(input);
+
+  return {
+    id: input.id,
+    appliedCount,
+  };
+}
+
+/**
+ * 注销扩展消息按钮
+ */
+export async function unregisterExtraMessageButton(
+  input: UnregisterExtraMessageButtonInput
+): Promise<UnregisterExtraMessageButtonOutput> {
+  // 从所有消息中移除按钮
+  const messages = document.querySelectorAll('#chat .mes');
+  let removedCount = 0;
+  messages.forEach((mes) => {
+    if (removeExtraButtonFromMessage(mes as HTMLElement, input.id)) {
+      removedCount++;
+    }
+  });
+
+  // 从注册表中移除
+  extraMessageButtons.delete(input.id);
+
+  // 如果没有更多注册的按钮，可以停止观察器
+  if (messageButtons.size === 0 && extraMessageButtons.size === 0 && messageHeaderElements.size === 0 && messageObserver) {
+    messageObserver.disconnect();
+    messageObserver = null;
+  }
+
+  return {
+    ok: true,
+    removedCount,
+  };
+}
+
+// ============================================================================
+// Message Header Element (消息标题区域元素)
+// ============================================================================
+
+/** 存储已注册的消息标题元素配置 */
+const messageHeaderElements = new Map<string, RegisterMessageHeaderElementInput>();
+
+/**
+ * 获取消息上下文信息
+ */
+function getMessageContext(mesElement: HTMLElement): MessageContext | null {
+  const mesId = parseInt(mesElement.getAttribute('mesid') || '-1', 10);
+  if (mesId < 0) return null;
+
+  const isUser = mesElement.getAttribute('is_user') === 'true';
+  const isSystem = mesElement.getAttribute('is_system') === 'true';
+  const characterName = mesElement.getAttribute('ch_name') || '';
+
+  let role: 'user' | 'assistant' | 'system';
+  if (isSystem) {
+    role = 'system';
+  } else if (isUser) {
+    role = 'user';
+  } else {
+    role = 'assistant';
+  }
+
+  return {
+    mesId,
+    role,
+    characterName,
+    isUser,
+    isSystem,
+    messageElement: mesElement,
+  };
+}
+
+/**
+ * 为单个消息添加标题元素
+ */
+function addHeaderElementToMessage(
+  mesElement: HTMLElement,
+  config: RegisterMessageHeaderElementInput
+): void {
+  const context = getMessageContext(mesElement);
+  if (!context) return;
+
+  // 检查角色过滤
+  const roleFilter = config.roleFilter ?? 'all';
+  if (roleFilter !== 'all' && roleFilter !== context.role) return;
+
+  // 检查自定义过滤
+  if (config.filter && !config.filter(context)) return;
+
+  // 找到标题区域容器
+  const headerContainer = mesElement.querySelector('.ch_name .flex-container.alignItemsBaseline');
+  if (!headerContainer) return;
+
+  // 检查是否已添加
+  const elementId = `st-api-header-${sanitizeForId(config.id)}`;
+  if (headerContainer.querySelector(`[data-st-header-id="${elementId}"]`)) return;
+
+  // 渲染元素
+  const element = config.render(context);
+  if (!element) return;
+
+  // 添加标识
+  element.setAttribute('data-st-header-id', elementId);
+
+  // 计算插入位置
+  const position = config.position ?? 'afterName';
+  const nameText = headerContainer.querySelector('.name_text');
+  const timestamp = headerContainer.querySelector('.timestamp');
+
+  if (position === 'afterName' && nameText) {
+    nameText.insertAdjacentElement('afterend', element);
+  } else if (position === 'beforeTimestamp' && timestamp) {
+    timestamp.insertAdjacentElement('beforebegin', element);
+  } else if (position === 'afterTimestamp' && timestamp) {
+    timestamp.insertAdjacentElement('afterend', element);
+  } else if (typeof position === 'number') {
+    const children = headerContainer.children;
+    if (position < children.length) {
+      headerContainer.insertBefore(element, children[position]);
+    } else {
+      headerContainer.appendChild(element);
+    }
+  } else {
+    // 默认追加到末尾
+    headerContainer.appendChild(element);
+  }
+}
+
+/**
+ * 从单个消息移除标题元素
+ */
+function removeHeaderElementFromMessage(
+  mesElement: HTMLElement,
+  elementId: string
+): boolean {
+  const el = mesElement.querySelector(`[data-st-header-id="st-api-header-${sanitizeForId(elementId)}"]`);
+  if (el) {
+    el.remove();
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 为所有现有消息添加标题元素
+ */
+function applyHeaderElementToAllMessages(config: RegisterMessageHeaderElementInput): number {
+  const messages = document.querySelectorAll('#chat .mes');
+  let count = 0;
+  messages.forEach((mes) => {
+    addHeaderElementToMessage(mes as HTMLElement, config);
+    count++;
+  });
+  return count;
+}
+
+/**
+ * 注册消息标题元素
+ */
+export async function registerMessageHeaderElement(
+  input: RegisterMessageHeaderElementInput
+): Promise<RegisterMessageHeaderElementOutput> {
+  await waitAppReady();
+
+  if (messageHeaderElements.has(input.id)) {
+    throw new Error(`Message header element ID already registered: ${input.id}`);
+  }
+
+  // 保存配置
+  messageHeaderElements.set(input.id, input);
+
+  // 确保观察器运行
+  ensureMessageObserver();
+
+  // 应用到所有现有消息
+  const appliedCount = applyHeaderElementToAllMessages(input);
+
+  return {
+    id: input.id,
+    appliedCount,
+  };
+}
+
+/**
+ * 注销消息标题元素
+ */
+export async function unregisterMessageHeaderElement(
+  input: UnregisterMessageHeaderElementInput
+): Promise<UnregisterMessageHeaderElementOutput> {
+  // 从所有消息中移除元素
+  const messages = document.querySelectorAll('#chat .mes');
+  let removedCount = 0;
+  messages.forEach((mes) => {
+    if (removeHeaderElementFromMessage(mes as HTMLElement, input.id)) {
+      removedCount++;
+    }
+  });
+
+  // 从注册表中移除
+  messageHeaderElements.delete(input.id);
+
+  // 如果没有更多注册的项，可以停止观察器
+  if (messageButtons.size === 0 && extraMessageButtons.size === 0 && messageHeaderElements.size === 0 && messageObserver) {
+    messageObserver.disconnect();
+    messageObserver = null;
+  }
+
+  return {
+    ok: true,
+    removedCount,
+  };
 }

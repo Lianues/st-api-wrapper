@@ -4,7 +4,7 @@
     "js": "dist/index.iife.js",
     "css": "dist/style.css",
     "author": "Limerence",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "description": "Standardized API Wrapper for SillyTavern features.",
     "homePage": "https://github.com/Lianues/st-api-wrapper"
 }

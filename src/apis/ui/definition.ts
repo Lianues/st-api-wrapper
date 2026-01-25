@@ -20,6 +20,20 @@ import type {
   RegisterTopSettingsDrawerOutput,
   UnregisterTopSettingsDrawerInput,
   UnregisterTopSettingsDrawerOutput,
+  ScrollChatInput,
+  ScrollChatOutput,
+  RegisterMessageButtonInput,
+  RegisterMessageButtonOutput,
+  UnregisterMessageButtonInput,
+  UnregisterMessageButtonOutput,
+  RegisterExtraMessageButtonInput,
+  RegisterExtraMessageButtonOutput,
+  UnregisterExtraMessageButtonInput,
+  UnregisterExtraMessageButtonOutput,
+  RegisterMessageHeaderElementInput,
+  RegisterMessageHeaderElementOutput,
+  UnregisterMessageHeaderElementInput,
+  UnregisterMessageHeaderElementOutput,
 } from './types';
 import {
   listSettingsPanels,
@@ -33,6 +47,13 @@ import {
   unregisterSettingsPanel,
   registerTopSettingsDrawer,
   unregisterTopSettingsDrawer,
+  scrollChat,
+  registerMessageButton,
+  unregisterMessageButton,
+  registerExtraMessageButton,
+  unregisterExtraMessageButton,
+  registerMessageHeaderElement,
+  unregisterMessageHeaderElement,
 } from './impl';
 
 const registerSettingsPanelEndpoint: EndpointDefinition<RegisterSettingsPanelInput, RegisterSettingsPanelOutput> = {
@@ -108,6 +129,59 @@ const unregisterTopSettingsDrawerEndpoint: EndpointDefinition<
   handler: unregisterTopSettingsDrawer,
 };
 
+const scrollChatEndpoint: EndpointDefinition<ScrollChatInput, ScrollChatOutput> = {
+  name: 'scrollChat',
+  handler: scrollChat,
+};
+
+const registerMessageButtonEndpoint: EndpointDefinition<
+  RegisterMessageButtonInput,
+  RegisterMessageButtonOutput
+> = {
+  name: 'registerMessageButton',
+  handler: registerMessageButton,
+};
+
+const unregisterMessageButtonEndpoint: EndpointDefinition<
+  UnregisterMessageButtonInput,
+  UnregisterMessageButtonOutput
+> = {
+  name: 'unregisterMessageButton',
+  handler: unregisterMessageButton,
+};
+
+const registerExtraMessageButtonEndpoint: EndpointDefinition<
+  RegisterExtraMessageButtonInput,
+  RegisterExtraMessageButtonOutput
+> = {
+  name: 'registerExtraMessageButton',
+  handler: registerExtraMessageButton,
+};
+
+const unregisterExtraMessageButtonEndpoint: EndpointDefinition<
+  UnregisterExtraMessageButtonInput,
+  UnregisterExtraMessageButtonOutput
+> = {
+  name: 'unregisterExtraMessageButton',
+  handler: unregisterExtraMessageButton,
+};
+
+const registerMessageHeaderElementEndpoint: EndpointDefinition<
+  RegisterMessageHeaderElementInput,
+  RegisterMessageHeaderElementOutput
+> = {
+  name: 'registerMessageHeaderElement',
+  handler: registerMessageHeaderElement,
+};
+
+const unregisterMessageHeaderElementEndpoint: EndpointDefinition<
+  UnregisterMessageHeaderElementInput,
+  UnregisterMessageHeaderElementOutput
+> = {
+  name: 'unregisterMessageHeaderElement',
+  handler: unregisterMessageHeaderElement,
+};
+
 export const uiModuleDefinition: ApiModuleDefinition = {
   namespace: 'ui',
   endpoints: [
@@ -122,5 +196,12 @@ export const uiModuleDefinition: ApiModuleDefinition = {
     reloadSettingsEndpoint,
     registerTopSettingsDrawerEndpoint,
     unregisterTopSettingsDrawerEndpoint,
+    scrollChatEndpoint,
+    registerMessageButtonEndpoint,
+    unregisterMessageButtonEndpoint,
+    registerExtraMessageButtonEndpoint,
+    unregisterExtraMessageButtonEndpoint,
+    registerMessageHeaderElementEndpoint,
+    unregisterMessageHeaderElementEndpoint,
   ],
 };

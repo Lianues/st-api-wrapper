@@ -20,6 +20,22 @@
 - [ui.registerOptionsMenuItem](./registerOptionsMenuItem.md)：注册选项菜单项
 - [ui.unregisterOptionsMenuItem](./unregisterOptionsMenuItem.md)：注销选项菜单项
 
+## 聊天操作
+
+- [ui.scrollChat](./scrollChat.md)：滚动聊天记录到指定位置
+
+## 消息按钮
+
+- [ui.registerMessageButton](./registerMessageButton.md)：注册消息操作按钮（与 Edit 同级）
+- [ui.unregisterMessageButton](./unregisterMessageButton.md)：注销消息操作按钮
+- [ui.registerExtraMessageButton](./registerExtraMessageButton.md)：注册扩展消息按钮（在 ... 菜单内）
+- [ui.unregisterExtraMessageButton](./unregisterExtraMessageButton.md)：注销扩展消息按钮
+
+## 消息标题区域
+
+- [ui.registerMessageHeaderElement](./registerMessageHeaderElement.md)：在消息标题区域注册自定义元素
+- [ui.unregisterMessageHeaderElement](./unregisterMessageHeaderElement.md)：注销消息标题区域元素
+
 ## 界面刷新
 
 - [ui.reloadChat](./reloadChat.md)：重载当前聊天界面

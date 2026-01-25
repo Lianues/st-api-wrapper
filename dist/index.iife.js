@@ -6487,7 +6487,7 @@ var __publicField = (obj, key, value) => {
       for (const item of media) {
         const mimeType = item.mime_type || (item.type === "image" ? "image/png" : "application/octet-stream");
         if (mediaFormat === "base64") {
-          const b64 = await imageUrlToBase64(item.url);
+          const b64 = await imageUrlToBase64$1(item.url);
           if (b64)
             parts.push({ inlineData: { mimeType, data: b64 } });
         } else {
@@ -6497,7 +6497,7 @@ var __publicField = (obj, key, value) => {
     }
     return parts;
   }
-  async function imageUrlToBase64(url) {
+  async function imageUrlToBase64$1(url) {
     if (url.startsWith("data:"))
       return url.split(",")[1];
     try {
@@ -6817,7 +6817,7 @@ var __publicField = (obj, key, value) => {
     }
     return result;
   }
-  async function get$6(input) {
+  async function get$7(input) {
     const ctx = window.SillyTavern.getContext();
     const { eventSource, event_types, generate: generate2, characterId } = ctx;
     const timeoutMs = (input == null ? void 0 : input.timeoutMs) ?? 8e3;
@@ -7233,9 +7233,9 @@ var __publicField = (obj, key, value) => {
       }
     }
   }
-  const getEndpoint$5 = {
+  const getEndpoint$6 = {
     name: "get",
-    handler: get$6
+    handler: get$7
   };
   const buildRequestEndpoint = {
     name: "buildRequest",
@@ -7247,7 +7247,7 @@ var __publicField = (obj, key, value) => {
   };
   const promptModuleDefinition = {
     namespace: "prompt",
-    endpoints: [getEndpoint$5, buildRequestEndpoint, generateEndpoint]
+    endpoints: [getEndpoint$6, buildRequestEndpoint, generateEndpoint]
   };
   function registerPromptApis(registry2) {
     registry2.registerModule(promptModuleDefinition);
@@ -7291,7 +7291,7 @@ var __publicField = (obj, key, value) => {
     }
     return { path };
   }
-  async function get$5(input) {
+  async function get$6(input) {
     const url = constructPath(input);
     const response = await fetch(url);
     if (!response.ok) {
@@ -7309,7 +7309,7 @@ var __publicField = (obj, key, value) => {
       mimeType: blob.type
     };
   }
-  async function list$5(input) {
+  async function list$6(input) {
     const ctx = window.SillyTavern.getContext();
     let targetChName = input.chName || "uploads";
     if (input.useCharacterDir) {
@@ -7355,7 +7355,7 @@ var __publicField = (obj, key, value) => {
       }
       return { success: true };
     }
-    const { files } = await list$5({
+    const { files } = await list$6({
       chName: input.chName,
       useCharacterDir: input.useCharacterDir
     });
@@ -7384,13 +7384,13 @@ var __publicField = (obj, key, value) => {
     name: "upload",
     handler: upload
   };
-  const getEndpoint$4 = {
+  const getEndpoint$5 = {
     name: "get",
-    handler: get$5
+    handler: get$6
   };
-  const listEndpoint$4 = {
+  const listEndpoint$5 = {
     name: "list",
-    handler: list$5
+    handler: list$6
   };
   const deleteEndpoint$4 = {
     name: "delete",
@@ -7398,7 +7398,7 @@ var __publicField = (obj, key, value) => {
   };
   const fileModuleDefinition = {
     namespace: "file",
-    endpoints: [uploadEndpoint, getEndpoint$4, listEndpoint$4, deleteEndpoint$4]
+    endpoints: [uploadEndpoint, getEndpoint$5, listEndpoint$5, deleteEndpoint$4]
   };
   function registerFileApis(registry2) {
     registry2.registerModule(fileModuleDefinition);
@@ -7411,7 +7411,7 @@ var __publicField = (obj, key, value) => {
       return "#extensions_settings2";
     return target || "#extensions_settings2";
   }
-  async function waitAppReady$1() {
+  async function waitAppReady$2() {
     var _a, _b;
     const ctx = (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
     if (!ctx)
@@ -7445,7 +7445,7 @@ var __publicField = (obj, key, value) => {
     }
   }
   async function registerSettingsPanel(input) {
-    await waitAppReady$1();
+    await waitAppReady$2();
     const targetSelector = resolveTargetSelector(input.target);
     const targetEl = document.querySelector(targetSelector);
     if (!targetEl)
@@ -7504,7 +7504,7 @@ var __publicField = (obj, key, value) => {
     return { panels: [] };
   }
   async function registerExtensionsMenuItem(input) {
-    await waitAppReady$1();
+    await waitAppReady$2();
     const menu = document.getElementById("extensionsMenu");
     if (!menu)
       throw new Error("Extensions menu (#extensionsMenu) not found");
@@ -7548,7 +7548,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function registerOptionsMenuItem(input) {
-    await waitAppReady$1();
+    await waitAppReady$2();
     let menu = document.querySelector("#options_button + .options-content");
     if (!menu) {
       menu = document.querySelector('.options-content[role="list"]');
@@ -7618,7 +7618,7 @@ var __publicField = (obj, key, value) => {
   }
   const topDrawers = /* @__PURE__ */ new Map();
   async function registerTopSettingsDrawer(input) {
-    await waitAppReady$1();
+    await waitAppReady$2();
     const topHolder = document.getElementById("top-settings-holder");
     if (!topHolder) {
       throw new Error("Target not found: #top-settings-holder");
@@ -7736,6 +7736,370 @@ var __publicField = (obj, key, value) => {
     topDrawers.delete(input.id);
     return { ok: true };
   }
+  async function scrollChat(input) {
+    await waitAppReady$2();
+    const chatContainer = document.getElementById("chat");
+    if (!chatContainer) {
+      return { ok: false };
+    }
+    const behavior = input.behavior ?? "smooth";
+    const target = input.target ?? "bottom";
+    if (target === "bottom") {
+      chatContainer.scrollTo({
+        top: chatContainer.scrollHeight,
+        behavior
+      });
+    } else if (target === "top") {
+      chatContainer.scrollTo({
+        top: 0,
+        behavior
+      });
+    } else if (typeof target === "number") {
+      const message = chatContainer.querySelector(`.mes[mesid="${target}"]`);
+      if (message) {
+        message.scrollIntoView({
+          behavior,
+          block: "center"
+        });
+      } else {
+        return { ok: false };
+      }
+    }
+    return {
+      ok: true,
+      scrollTop: chatContainer.scrollTop
+    };
+  }
+  const messageButtons = /* @__PURE__ */ new Map();
+  let messageObserver = null;
+  function addButtonToMessage(mesElement, config) {
+    const mesId = parseInt(mesElement.getAttribute("mesid") || "-1", 10);
+    if (mesId < 0)
+      return;
+    const buttonsContainer = mesElement.querySelector(".mes_buttons");
+    if (!buttonsContainer)
+      return;
+    const buttonId = `st-api-mes-btn-${sanitizeForId(config.id)}`;
+    if (buttonsContainer.querySelector(`[data-st-btn-id="${buttonId}"]`))
+      return;
+    const btn = document.createElement("div");
+    btn.className = `mes_button ${config.icon} interactable`;
+    btn.title = config.title;
+    btn.tabIndex = 0;
+    btn.setAttribute("role", "button");
+    btn.setAttribute("data-st-btn-id", buttonId);
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      config.onClick(mesId, mesElement);
+    });
+    btn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        e.stopPropagation();
+        config.onClick(mesId, mesElement);
+      }
+    });
+    const existingCustomButtons = buttonsContainer.querySelectorAll("[data-st-btn-id]");
+    const mesEditBtn = buttonsContainer.querySelector(".mes_edit");
+    if (typeof config.index === "number" && config.index >= 0) {
+      let targetIndex = config.index;
+      let insertBefore = null;
+      const customBtns = Array.from(existingCustomButtons);
+      if (targetIndex < customBtns.length) {
+        insertBefore = customBtns[targetIndex];
+      } else if (mesEditBtn == null ? void 0 : mesEditBtn.nextElementSibling) {
+        insertBefore = null;
+      }
+      if (insertBefore) {
+        buttonsContainer.insertBefore(btn, insertBefore);
+      } else if (mesEditBtn) {
+        mesEditBtn.insertAdjacentElement("afterend", btn);
+      } else {
+        buttonsContainer.appendChild(btn);
+      }
+    } else {
+      if (mesEditBtn) {
+        mesEditBtn.insertAdjacentElement("afterend", btn);
+      } else {
+        buttonsContainer.appendChild(btn);
+      }
+    }
+  }
+  function removeButtonFromMessage(mesElement, buttonId) {
+    const btn = mesElement.querySelector(`[data-st-btn-id="st-api-mes-btn-${sanitizeForId(buttonId)}"]`);
+    if (btn) {
+      btn.remove();
+      return true;
+    }
+    return false;
+  }
+  function applyButtonToAllMessages(config) {
+    const messages = document.querySelectorAll("#chat .mes");
+    let count = 0;
+    messages.forEach((mes) => {
+      addButtonToMessage(mes, config);
+      count++;
+    });
+    return count;
+  }
+  function ensureMessageObserver() {
+    if (messageObserver)
+      return;
+    const chatContainer = document.getElementById("chat");
+    if (!chatContainer)
+      return;
+    messageObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof HTMLElement && node.classList.contains("mes")) {
+            messageButtons.forEach((config) => {
+              addButtonToMessage(node, config);
+            });
+            extraMessageButtons.forEach((config) => {
+              addExtraButtonToMessage(node, config);
+            });
+            messageHeaderElements.forEach((config) => {
+              addHeaderElementToMessage(node, config);
+            });
+          }
+        });
+      });
+    });
+    messageObserver.observe(chatContainer, { childList: true });
+  }
+  async function registerMessageButton(input) {
+    await waitAppReady$2();
+    if (messageButtons.has(input.id)) {
+      throw new Error(`Message button ID already registered: ${input.id}`);
+    }
+    messageButtons.set(input.id, input);
+    ensureMessageObserver();
+    const appliedCount = applyButtonToAllMessages(input);
+    return {
+      id: input.id,
+      appliedCount
+    };
+  }
+  async function unregisterMessageButton(input) {
+    const messages = document.querySelectorAll("#chat .mes");
+    let removedCount = 0;
+    messages.forEach((mes) => {
+      if (removeButtonFromMessage(mes, input.id)) {
+        removedCount++;
+      }
+    });
+    messageButtons.delete(input.id);
+    if (messageButtons.size === 0 && extraMessageButtons.size === 0 && messageObserver) {
+      messageObserver.disconnect();
+      messageObserver = null;
+    }
+    return {
+      ok: true,
+      removedCount
+    };
+  }
+  const extraMessageButtons = /* @__PURE__ */ new Map();
+  function addExtraButtonToMessage(mesElement, config) {
+    const mesId = parseInt(mesElement.getAttribute("mesid") || "-1", 10);
+    if (mesId < 0)
+      return;
+    const extraButtonsContainer = mesElement.querySelector(".extraMesButtons");
+    if (!extraButtonsContainer)
+      return;
+    const buttonId = `st-api-extra-btn-${sanitizeForId(config.id)}`;
+    if (extraButtonsContainer.querySelector(`[data-st-btn-id="${buttonId}"]`))
+      return;
+    const btn = document.createElement("div");
+    btn.className = `mes_button ${config.icon} interactable`;
+    btn.title = config.title;
+    btn.tabIndex = 0;
+    btn.setAttribute("role", "button");
+    btn.setAttribute("data-st-btn-id", buttonId);
+    btn.setAttribute("data-i18n", `[title]${config.title}`);
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      config.onClick(mesId, mesElement);
+    });
+    btn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        e.stopPropagation();
+        config.onClick(mesId, mesElement);
+      }
+    });
+    if (typeof config.index === "number" && config.index >= 0) {
+      const children = extraButtonsContainer.children;
+      if (config.index < children.length) {
+        extraButtonsContainer.insertBefore(btn, children[config.index]);
+      } else {
+        extraButtonsContainer.appendChild(btn);
+      }
+    } else {
+      extraButtonsContainer.appendChild(btn);
+    }
+  }
+  function removeExtraButtonFromMessage(mesElement, buttonId) {
+    const btn = mesElement.querySelector(`[data-st-btn-id="st-api-extra-btn-${sanitizeForId(buttonId)}"]`);
+    if (btn) {
+      btn.remove();
+      return true;
+    }
+    return false;
+  }
+  function applyExtraButtonToAllMessages(config) {
+    const messages = document.querySelectorAll("#chat .mes");
+    let count = 0;
+    messages.forEach((mes) => {
+      addExtraButtonToMessage(mes, config);
+      count++;
+    });
+    return count;
+  }
+  async function registerExtraMessageButton(input) {
+    await waitAppReady$2();
+    if (extraMessageButtons.has(input.id)) {
+      throw new Error(`Extra message button ID already registered: ${input.id}`);
+    }
+    extraMessageButtons.set(input.id, input);
+    ensureMessageObserver();
+    const appliedCount = applyExtraButtonToAllMessages(input);
+    return {
+      id: input.id,
+      appliedCount
+    };
+  }
+  async function unregisterExtraMessageButton(input) {
+    const messages = document.querySelectorAll("#chat .mes");
+    let removedCount = 0;
+    messages.forEach((mes) => {
+      if (removeExtraButtonFromMessage(mes, input.id)) {
+        removedCount++;
+      }
+    });
+    extraMessageButtons.delete(input.id);
+    if (messageButtons.size === 0 && extraMessageButtons.size === 0 && messageHeaderElements.size === 0 && messageObserver) {
+      messageObserver.disconnect();
+      messageObserver = null;
+    }
+    return {
+      ok: true,
+      removedCount
+    };
+  }
+  const messageHeaderElements = /* @__PURE__ */ new Map();
+  function getMessageContext(mesElement) {
+    const mesId = parseInt(mesElement.getAttribute("mesid") || "-1", 10);
+    if (mesId < 0)
+      return null;
+    const isUser = mesElement.getAttribute("is_user") === "true";
+    const isSystem = mesElement.getAttribute("is_system") === "true";
+    const characterName = mesElement.getAttribute("ch_name") || "";
+    let role;
+    if (isSystem) {
+      role = "system";
+    } else if (isUser) {
+      role = "user";
+    } else {
+      role = "assistant";
+    }
+    return {
+      mesId,
+      role,
+      characterName,
+      isUser,
+      isSystem,
+      messageElement: mesElement
+    };
+  }
+  function addHeaderElementToMessage(mesElement, config) {
+    const context = getMessageContext(mesElement);
+    if (!context)
+      return;
+    const roleFilter = config.roleFilter ?? "all";
+    if (roleFilter !== "all" && roleFilter !== context.role)
+      return;
+    if (config.filter && !config.filter(context))
+      return;
+    const headerContainer = mesElement.querySelector(".ch_name .flex-container.alignItemsBaseline");
+    if (!headerContainer)
+      return;
+    const elementId = `st-api-header-${sanitizeForId(config.id)}`;
+    if (headerContainer.querySelector(`[data-st-header-id="${elementId}"]`))
+      return;
+    const element = config.render(context);
+    if (!element)
+      return;
+    element.setAttribute("data-st-header-id", elementId);
+    const position = config.position ?? "afterName";
+    const nameText = headerContainer.querySelector(".name_text");
+    const timestamp = headerContainer.querySelector(".timestamp");
+    if (position === "afterName" && nameText) {
+      nameText.insertAdjacentElement("afterend", element);
+    } else if (position === "beforeTimestamp" && timestamp) {
+      timestamp.insertAdjacentElement("beforebegin", element);
+    } else if (position === "afterTimestamp" && timestamp) {
+      timestamp.insertAdjacentElement("afterend", element);
+    } else if (typeof position === "number") {
+      const children = headerContainer.children;
+      if (position < children.length) {
+        headerContainer.insertBefore(element, children[position]);
+      } else {
+        headerContainer.appendChild(element);
+      }
+    } else {
+      headerContainer.appendChild(element);
+    }
+  }
+  function removeHeaderElementFromMessage(mesElement, elementId) {
+    const el = mesElement.querySelector(`[data-st-header-id="st-api-header-${sanitizeForId(elementId)}"]`);
+    if (el) {
+      el.remove();
+      return true;
+    }
+    return false;
+  }
+  function applyHeaderElementToAllMessages(config) {
+    const messages = document.querySelectorAll("#chat .mes");
+    let count = 0;
+    messages.forEach((mes) => {
+      addHeaderElementToMessage(mes, config);
+      count++;
+    });
+    return count;
+  }
+  async function registerMessageHeaderElement(input) {
+    await waitAppReady$2();
+    if (messageHeaderElements.has(input.id)) {
+      throw new Error(`Message header element ID already registered: ${input.id}`);
+    }
+    messageHeaderElements.set(input.id, input);
+    ensureMessageObserver();
+    const appliedCount = applyHeaderElementToAllMessages(input);
+    return {
+      id: input.id,
+      appliedCount
+    };
+  }
+  async function unregisterMessageHeaderElement(input) {
+    const messages = document.querySelectorAll("#chat .mes");
+    let removedCount = 0;
+    messages.forEach((mes) => {
+      if (removeHeaderElementFromMessage(mes, input.id)) {
+        removedCount++;
+      }
+    });
+    messageHeaderElements.delete(input.id);
+    if (messageButtons.size === 0 && extraMessageButtons.size === 0 && messageHeaderElements.size === 0 && messageObserver) {
+      messageObserver.disconnect();
+      messageObserver = null;
+    }
+    return {
+      ok: true,
+      removedCount
+    };
+  }
   const registerSettingsPanelEndpoint = {
     name: "registerSettingsPanel",
     handler: registerSettingsPanel
@@ -7780,6 +8144,34 @@ var __publicField = (obj, key, value) => {
     name: "unregisterTopSettingsDrawer",
     handler: unregisterTopSettingsDrawer
   };
+  const scrollChatEndpoint = {
+    name: "scrollChat",
+    handler: scrollChat
+  };
+  const registerMessageButtonEndpoint = {
+    name: "registerMessageButton",
+    handler: registerMessageButton
+  };
+  const unregisterMessageButtonEndpoint = {
+    name: "unregisterMessageButton",
+    handler: unregisterMessageButton
+  };
+  const registerExtraMessageButtonEndpoint = {
+    name: "registerExtraMessageButton",
+    handler: registerExtraMessageButton
+  };
+  const unregisterExtraMessageButtonEndpoint = {
+    name: "unregisterExtraMessageButton",
+    handler: unregisterExtraMessageButton
+  };
+  const registerMessageHeaderElementEndpoint = {
+    name: "registerMessageHeaderElement",
+    handler: registerMessageHeaderElement
+  };
+  const unregisterMessageHeaderElementEndpoint = {
+    name: "unregisterMessageHeaderElement",
+    handler: unregisterMessageHeaderElement
+  };
   const uiModuleDefinition = {
     namespace: "ui",
     endpoints: [
@@ -7793,7 +8185,14 @@ var __publicField = (obj, key, value) => {
       reloadChatEndpoint,
       reloadSettingsEndpoint,
       registerTopSettingsDrawerEndpoint,
-      unregisterTopSettingsDrawerEndpoint
+      unregisterTopSettingsDrawerEndpoint,
+      scrollChatEndpoint,
+      registerMessageButtonEndpoint,
+      unregisterMessageButtonEndpoint,
+      registerExtraMessageButtonEndpoint,
+      unregisterExtraMessageButtonEndpoint,
+      registerMessageHeaderElementEndpoint,
+      unregisterMessageHeaderElementEndpoint
     ]
   };
   function registerUiApis(registry2) {
@@ -7804,7 +8203,7 @@ var __publicField = (obj, key, value) => {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
-  async function waitAppReady() {
+  async function waitAppReady$1() {
     const ctx = resolveCtx();
     if (!ctx)
       return;
@@ -7908,7 +8307,7 @@ var __publicField = (obj, key, value) => {
       throw new Error("hooks.install requires a non-empty id");
     if (installs.has(id))
       throw new Error(`hooks.install duplicate id: ${id}`);
-    await waitAppReady();
+    await waitAppReady$1();
     const rt = {
       id,
       broadcast: defaults(
@@ -8172,7 +8571,7 @@ var __publicField = (obj, key, value) => {
   function registerHooksApis(registry2) {
     registry2.registerModule(hooksModuleDefinition);
   }
-  async function list$4(input) {
+  async function list$5(input) {
     const ctx = window.SillyTavern.getContext();
     const rawChat = ctx.chat || [];
     const messages = await normalizeChatMessages(rawChat, {
@@ -8186,7 +8585,7 @@ var __publicField = (obj, key, value) => {
       chatId: ctx.chatId
     };
   }
-  async function get$4(input) {
+  async function get$5(input) {
     const ctx = window.SillyTavern.getContext();
     const rawChat = ctx.chat || [];
     const index = input == null ? void 0 : input.index;
@@ -8336,13 +8735,13 @@ var __publicField = (obj, key, value) => {
     }
     return result;
   }
-  const getEndpoint$3 = {
+  const getEndpoint$4 = {
     name: "get",
-    handler: get$4
+    handler: get$5
   };
-  const listEndpoint$3 = {
+  const listEndpoint$4 = {
     name: "list",
-    handler: list$4
+    handler: list$5
   };
   const createEndpoint$2 = {
     name: "create",
@@ -8358,7 +8757,7 @@ var __publicField = (obj, key, value) => {
   };
   const chatHistoryModuleDefinition = {
     namespace: "chatHistory",
-    endpoints: [getEndpoint$3, listEndpoint$3, createEndpoint$2, updateEndpoint$3, deleteEndpoint$3]
+    endpoints: [getEndpoint$4, listEndpoint$4, createEndpoint$2, updateEndpoint$3, deleteEndpoint$3]
   };
   function registerChatHistoryApis(registry2) {
     registry2.registerModule(chatHistoryModuleDefinition);
@@ -8594,7 +8993,7 @@ var __publicField = (obj, key, value) => {
     }
     return results;
   }
-  function get$3(input) {
+  function get$4(input) {
     const presetManager = getPresetManager();
     const name = (input == null ? void 0 : input.name) || presetManager.getSelectedPresetName();
     const raw = getRawSettings(name);
@@ -8603,7 +9002,7 @@ var __publicField = (obj, key, value) => {
     }
     return { preset: null };
   }
-  function list$3() {
+  function list$4() {
     const presetManager = getPresetManager();
     const active = presetManager.getSelectedPresetName() || "";
     return { presets: getAllPresetsDetail(), active };
@@ -8729,13 +9128,13 @@ var __publicField = (obj, key, value) => {
     await presetManager.savePreset(targetName, rawToSave);
     return { success: true };
   }
-  const getEndpoint$2 = {
+  const getEndpoint$3 = {
     name: "get",
-    handler: get$3
+    handler: get$4
   };
-  const listEndpoint$2 = {
+  const listEndpoint$3 = {
     name: "list",
-    handler: list$3
+    handler: list$4
   };
   const createEndpoint$1 = {
     name: "create",
@@ -8768,8 +9167,8 @@ var __publicField = (obj, key, value) => {
   const presetModuleDefinition = {
     namespace: "preset",
     endpoints: [
-      getEndpoint$2,
-      listEndpoint$2,
+      getEndpoint$3,
+      listEndpoint$3,
       createEndpoint$1,
       updateEndpoint$2,
       deleteEndpoint$2,
@@ -9378,12 +9777,12 @@ var __publicField = (obj, key, value) => {
   function registerWorldBookApis(registry2) {
     registry2.registerModule(worldbookModuleDefinition);
   }
-  function getContext() {
+  function getContext$1() {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
   function triggerRefresh() {
-    const ctx = getContext();
+    const ctx = getContext$1();
     if (!ctx)
       return;
     if (ctx.saveSettingsDebounced) {
@@ -9395,8 +9794,8 @@ var __publicField = (obj, key, value) => {
       eventSource.emit(eventTypes.SETTINGS_LOADED);
     }
   }
-  async function get$2(input) {
-    const ctx = getContext();
+  async function get$3(input) {
+    const ctx = getContext$1();
     if (!ctx)
       throw new Error("SillyTavern context not available");
     const scope = (input == null ? void 0 : input.scope) || "local";
@@ -9406,9 +9805,9 @@ var __publicField = (obj, key, value) => {
     const value = ctx.variables[scope].get(name);
     return { value };
   }
-  async function list$2(input) {
+  async function list$3(input) {
     var _a;
-    const ctx = getContext();
+    const ctx = getContext$1();
     if (!ctx)
       throw new Error("SillyTavern context not available");
     const scope = (input == null ? void 0 : input.scope) || "local";
@@ -9419,7 +9818,7 @@ var __publicField = (obj, key, value) => {
     return { variables: { ...globals } };
   }
   async function set(input) {
-    const ctx = getContext();
+    const ctx = getContext$1();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -9428,7 +9827,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function deleteVariable(input) {
-    const ctx = getContext();
+    const ctx = getContext$1();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -9437,7 +9836,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function add(input) {
-    const ctx = getContext();
+    const ctx = getContext$1();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -9446,7 +9845,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function inc(input) {
-    const ctx = getContext();
+    const ctx = getContext$1();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -9455,7 +9854,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function dec(input) {
-    const ctx = getContext();
+    const ctx = getContext$1();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -9464,8 +9863,8 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   const endpoints = [
-    { name: "get", handler: get$2 },
-    { name: "list", handler: list$2 },
+    { name: "get", handler: get$3 },
+    { name: "list", handler: list$3 },
     { name: "set", handler: set },
     { name: "delete", handler: deleteVariable },
     { name: "add", handler: add },
@@ -9487,7 +9886,7 @@ var __publicField = (obj, key, value) => {
       return null;
     }
   }
-  async function list$1(input) {
+  async function list$2(input) {
     const includeGlobal = (input == null ? void 0 : input.includeGlobal) ?? true;
     const includeCharacter = (input == null ? void 0 : input.includeCharacter) ?? true;
     const includePreset = (input == null ? void 0 : input.includePreset) ?? true;
@@ -9511,7 +9910,7 @@ var __publicField = (obj, key, value) => {
     }
     return { regexScripts: rawScripts.map(fromStRegex) };
   }
-  async function get$1(input) {
+  async function get$2(input) {
     const idOrName = String(input.idOrName || "").trim();
     if (!idOrName)
       throw new Error("idOrName is required");
@@ -9543,7 +9942,7 @@ var __publicField = (obj, key, value) => {
     return { text: result };
   }
   async function run(input) {
-    const { regexScript } = await get$1({ idOrName: input.idOrName });
+    const { regexScript } = await get$2({ idOrName: input.idOrName });
     if (!regexScript)
       throw new Error(`Regex script not found: ${input.idOrName}`);
     const engine = await importRegexEngine();
@@ -9672,13 +10071,13 @@ var __publicField = (obj, key, value) => {
     (_c = ctx.reloadCurrentChat) == null ? void 0 : _c.call(ctx);
     return { success: true };
   }
-  const getEndpoint$1 = {
+  const getEndpoint$2 = {
     name: "get",
-    handler: get$1
+    handler: get$2
   };
-  const listEndpoint$1 = {
+  const listEndpoint$2 = {
     name: "list",
-    handler: list$1
+    handler: list$2
   };
   const processEndpoint = {
     name: "process",
@@ -9702,7 +10101,7 @@ var __publicField = (obj, key, value) => {
   };
   const regexScriptModuleDefinition = {
     namespace: "regexScript",
-    endpoints: [getEndpoint$1, listEndpoint$1, processEndpoint, runEndpoint, createEndpoint, updateEndpoint$1, deleteEndpoint$1]
+    endpoints: [getEndpoint$2, listEndpoint$2, processEndpoint, runEndpoint, createEndpoint, updateEndpoint$1, deleteEndpoint$1]
   };
   function registerRegexScriptApis(registry2) {
     registry2.registerModule(regexScriptModuleDefinition);
@@ -9806,14 +10205,14 @@ var __publicField = (obj, key, value) => {
       createDate
     };
   }
-  async function get(input) {
+  async function get$1(input) {
     const avatarUrl = String((input == null ? void 0 : input.avatarUrl) || "").trim();
     if (!avatarUrl)
       throw new Error("avatarUrl is required");
     const raw = await postJson("/api/characters/get", { avatar_url: avatarUrl }, "json");
     return { character: toCharacterCard(raw) };
   }
-  async function list(input = {}) {
+  async function list$1(input = {}) {
     const rawList = await postJson("/api/characters/all", {}, "json");
     if (!(input == null ? void 0 : input.full)) {
       return { characters: (Array.isArray(rawList) ? rawList : []).map((x) => toCharacterCard(x)) };
@@ -9823,7 +10222,7 @@ var __publicField = (obj, key, value) => {
       const avatar = getAvatarFromAny(c);
       if (!avatar)
         continue;
-      const full = await get({ avatarUrl: avatar });
+      const full = await get$1({ avatarUrl: avatar });
       out.push(full.character);
     }
     return { characters: out };
@@ -9851,18 +10250,18 @@ var __publicField = (obj, key, value) => {
       ...patch
     }, "void");
     if (input == null ? void 0 : input.returnCharacter) {
-      const updated = await get({ avatarUrl });
+      const updated = await get$1({ avatarUrl });
       return { ok: true, character: updated.character };
     }
     return { ok: true };
   }
-  const getEndpoint = {
+  const getEndpoint$1 = {
     name: "get",
-    handler: get
+    handler: get$1
   };
-  const listEndpoint = {
+  const listEndpoint$1 = {
     name: "list",
-    handler: list
+    handler: list$1
   };
   const deleteEndpoint = {
     name: "delete",
@@ -9874,7 +10273,7 @@ var __publicField = (obj, key, value) => {
   };
   const characterModuleDefinition = {
     namespace: "character",
-    endpoints: [getEndpoint, listEndpoint, deleteEndpoint, updateEndpoint]
+    endpoints: [getEndpoint$1, listEndpoint$1, deleteEndpoint, updateEndpoint]
   };
   function registerCharacterApis(registry2) {
     registry2.registerModule(characterModuleDefinition);
@@ -10094,6 +10493,229 @@ var __publicField = (obj, key, value) => {
   function registerSlashCommandApis(registry2) {
     registry2.registerModule(slashCommandModuleDefinition);
   }
+  async function waitAppReady() {
+    var _a, _b;
+    const ctx = (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
+    if (!ctx)
+      return;
+    const { eventSource, event_types } = ctx;
+    if (typeof (eventSource == null ? void 0 : eventSource.once) === "function" && (event_types == null ? void 0 : event_types.APP_READY)) {
+      await new Promise((resolve) => {
+        if (document.getElementById("form_create")) {
+          resolve();
+          return;
+        }
+        eventSource.once(event_types.APP_READY, () => resolve());
+      });
+    }
+  }
+  function ensurePngExtension(name) {
+    const trimmed = name.trim();
+    if (trimmed.toLowerCase().endsWith(".png")) {
+      return trimmed;
+    }
+    return `${trimmed}.png`;
+  }
+  async function imageUrlToBase64(url) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result;
+          resolve(result);
+        };
+        reader.onerror = () => reject(new Error("Failed to read image as base64"));
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Error converting image to base64:", error);
+      return "";
+    }
+  }
+  function getContext() {
+    var _a, _b;
+    return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
+  }
+  function getCurrentCharacterAvatarFileName() {
+    var _a;
+    const ctx = getContext();
+    if (!ctx)
+      return null;
+    const characterId = ctx.characterId;
+    if (characterId === void 0 || characterId === null || characterId < 0) {
+      return null;
+    }
+    const character = (_a = ctx.characters) == null ? void 0 : _a[characterId];
+    if (!character)
+      return null;
+    const avatarFileName = character.avatar || "";
+    if (!avatarFileName || avatarFileName === "none") {
+      return null;
+    }
+    return avatarFileName;
+  }
+  function getCurrentUserAvatarFileName() {
+    var _a, _b;
+    const ctx = getContext();
+    if (!ctx)
+      return null;
+    const personas = (_a = ctx.powerUserSettings) == null ? void 0 : _a.personas;
+    if (personas && typeof personas === "object") {
+      const keys = Object.keys(personas);
+      if (keys.length > 0) {
+        const defaultPersona = (_b = ctx.powerUserSettings) == null ? void 0 : _b.default_persona;
+        if (defaultPersona && keys.includes(defaultPersona)) {
+          return defaultPersona;
+        }
+        return keys[0];
+      }
+    }
+    return "user-default.png";
+  }
+  async function fetchUserAvatarsList() {
+    var _a;
+    try {
+      const ctx = getContext();
+      const headers = ((_a = ctx == null ? void 0 : ctx.getRequestHeaders) == null ? void 0 : _a.call(ctx, { omitContentType: true })) || {};
+      const response = await fetch("/api/avatars/get", {
+        method: "POST",
+        headers
+      });
+      if (response.ok) {
+        const avatars = await response.json();
+        if (Array.isArray(avatars)) {
+          return avatars;
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user avatars:", error);
+    }
+    return [];
+  }
+  async function buildAvatarOutput(type, fileName, isCurrent, includeFullBase64 = true) {
+    var _a, _b;
+    const ctx = getContext();
+    let url;
+    let thumbnailUrl;
+    if (type === "character") {
+      url = `characters/${fileName}`;
+      thumbnailUrl = ((_a = ctx == null ? void 0 : ctx.getThumbnailUrl) == null ? void 0 : _a.call(ctx, "avatar", fileName)) || `/thumbnail?type=avatar&file=${encodeURIComponent(fileName)}`;
+    } else {
+      url = `User Avatars/${fileName}`;
+      thumbnailUrl = ((_b = ctx == null ? void 0 : ctx.getThumbnailUrl) == null ? void 0 : _b.call(ctx, "persona", fileName)) || `/thumbnail?type=persona&file=${encodeURIComponent(fileName)}`;
+    }
+    let base64 = "";
+    let thumbnailBase64 = "";
+    if (includeFullBase64) {
+      [base64, thumbnailBase64] = await Promise.all([
+        imageUrlToBase64(url),
+        imageUrlToBase64(thumbnailUrl)
+      ]);
+    } else {
+      thumbnailBase64 = await imageUrlToBase64(thumbnailUrl);
+    }
+    const name = fileName.replace(/\.png$/i, "");
+    return {
+      type,
+      name,
+      url,
+      thumbnailUrl,
+      base64,
+      thumbnailBase64,
+      isCurrent
+    };
+  }
+  async function get(input) {
+    await waitAppReady();
+    const { type, name } = input;
+    if (!type) {
+      throw new Error("type is required");
+    }
+    let fileName;
+    let isCurrent = false;
+    if (name) {
+      fileName = ensurePngExtension(name);
+    } else {
+      isCurrent = true;
+      if (type === "character") {
+        const currentFileName = getCurrentCharacterAvatarFileName();
+        if (!currentFileName) {
+          throw new Error("No character selected in current chat");
+        }
+        fileName = currentFileName;
+      } else {
+        const currentFileName = getCurrentUserAvatarFileName();
+        if (!currentFileName) {
+          throw new Error("No user avatar found");
+        }
+        fileName = currentFileName;
+      }
+    }
+    return buildAvatarOutput(type, fileName, isCurrent);
+  }
+  async function list(input) {
+    await waitAppReady();
+    const { type, includeFullBase64 = false } = input;
+    if (!type) {
+      throw new Error("type is required");
+    }
+    const ctx = getContext();
+    if (!ctx) {
+      throw new Error("SillyTavern context not available");
+    }
+    const result = {
+      characters: [],
+      users: [],
+      total: 0
+    };
+    const currentCharacterFileName = getCurrentCharacterAvatarFileName();
+    const currentUserFileName = getCurrentUserAvatarFileName();
+    if (type === "character" || type === "all") {
+      const characters = ctx.characters || [];
+      const avatarPromises = [];
+      for (const char of characters) {
+        const avatar = char == null ? void 0 : char.avatar;
+        if (avatar && avatar !== "none") {
+          const isCurrent = avatar === currentCharacterFileName;
+          avatarPromises.push(buildAvatarOutput("character", avatar, isCurrent, includeFullBase64));
+        }
+      }
+      result.characters = await Promise.all(avatarPromises);
+    }
+    if (type === "user" || type === "all") {
+      const userAvatarFiles = await fetchUserAvatarsList();
+      const avatarPromises = [];
+      for (const fileName of userAvatarFiles) {
+        if (fileName) {
+          const isCurrent = fileName === currentUserFileName;
+          avatarPromises.push(buildAvatarOutput("user", fileName, isCurrent, includeFullBase64));
+        }
+      }
+      result.users = await Promise.all(avatarPromises);
+    }
+    result.total = result.characters.length + result.users.length;
+    return result;
+  }
+  const getEndpoint = {
+    name: "get",
+    handler: get
+  };
+  const listEndpoint = {
+    name: "list",
+    handler: list
+  };
+  const avatarModuleDefinition = {
+    namespace: "avatar",
+    endpoints: [getEndpoint, listEndpoint]
+  };
+  function registerAvatarApis(registry2) {
+    registry2.registerModule(avatarModuleDefinition);
+  }
   function registerAllApis(registry2) {
     registerPromptApis(registry2);
     registerFileApis(registry2);
@@ -10106,6 +10728,7 @@ var __publicField = (obj, key, value) => {
     registerRegexScriptApis(registry2);
     registerCharacterApis(registry2);
     registerSlashCommandApis(registry2);
+    registerAvatarApis(registry2);
   }
   const VERSION_STR = "1.0.0";
   const registry = new ApiRegistry();
