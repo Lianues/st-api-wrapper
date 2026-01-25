@@ -7030,7 +7030,7 @@ var __publicField = (obj, key, value) => {
     const injectBook = wbOpt == null ? void 0 : wbOpt.inject;
     const replaceBook = wbOpt == null ? void 0 : wbOpt.replace;
     if (injectBook && replaceBook) {
-      throw new Error("worldbook.inject and worldbook.replace are mutually exclusive");
+      throw new Error("worldBook.inject and worldBook.replace are mutually exclusive");
     }
     if (!injectBook && !replaceBook)
       return false;
@@ -7164,7 +7164,7 @@ var __publicField = (obj, key, value) => {
           restorers.push(applied.restore);
         }
       }
-      skipWIAN = await applyWorldbookOverrides(ctx, input == null ? void 0 : input.worldbook, restorers);
+      skipWIAN = await applyWorldbookOverrides(ctx, input == null ? void 0 : input.worldBook, restorers);
       const chOpt = input == null ? void 0 : input.chatHistory;
       const replaceMessages = chOpt == null ? void 0 : chOpt.replace;
       const injectBlocks = (chOpt == null ? void 0 : chOpt.inject) ?? [];
@@ -7423,7 +7423,7 @@ var __publicField = (obj, key, value) => {
           restorers.push(applied.restore);
         }
       }
-      skipWIAN = await applyWorldbookOverrides(ctx, input == null ? void 0 : input.worldbook, restorers);
+      skipWIAN = await applyWorldbookOverrides(ctx, input == null ? void 0 : input.worldBook, restorers);
       return await new Promise((resolve, reject) => {
         let done = false;
         let timer;
@@ -10150,8 +10150,8 @@ var __publicField = (obj, key, value) => {
     name: "deleteEntry",
     handler: deleteWorldBookEntry
   };
-  const worldbookModuleDefinition = {
-    namespace: "worldbook",
+  const worldBookModuleDefinition = {
+    namespace: "worldBook",
     endpoints: [
       listWorldBooksEndpoint,
       getWorldBookEndpoint,
@@ -10165,7 +10165,7 @@ var __publicField = (obj, key, value) => {
     ]
   };
   function registerWorldBookApis(registry2) {
-    registry2.registerModule(worldbookModuleDefinition);
+    registry2.registerModule(worldBookModuleDefinition);
   }
   function getContext$1() {
     var _a, _b;
