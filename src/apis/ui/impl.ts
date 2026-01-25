@@ -4,8 +4,12 @@ import type {
   RegisterSettingsPanelOutput,
   RegisterExtensionsMenuItemInput,
   RegisterExtensionsMenuItemOutput,
+  UnregisterExtensionsMenuItemInput,
+  UnregisterExtensionsMenuItemOutput,
   RegisterOptionsMenuItemInput,
   RegisterOptionsMenuItemOutput,
+  UnregisterOptionsMenuItemInput,
+  UnregisterOptionsMenuItemOutput,
   SettingsPanelTarget,
   UnregisterSettingsPanelInput,
   UnregisterSettingsPanelOutput,
@@ -181,6 +185,20 @@ export async function registerExtensionsMenuItem(input: RegisterExtensionsMenuIt
   return { itemId: item.id };
 }
 
+/**
+ * 注销扩展菜单项
+ */
+export async function unregisterExtensionsMenuItem(
+  input: UnregisterExtensionsMenuItemInput
+): Promise<UnregisterExtensionsMenuItemOutput> {
+  const containerId = `${sanitizeForId(input.id)}_ext_container`;
+  const el = document.getElementById(containerId);
+  if (el) {
+    el.remove();
+  }
+  return { ok: true };
+}
+
 export async function registerOptionsMenuItem(input: RegisterOptionsMenuItemInput): Promise<RegisterOptionsMenuItemOutput> {
   await waitAppReady();
 
@@ -226,6 +244,20 @@ export async function registerOptionsMenuItem(input: RegisterOptionsMenuItemInpu
   }
 
   return { itemId: item.id };
+}
+
+/**
+ * 注销选项菜单项
+ */
+export async function unregisterOptionsMenuItem(
+  input: UnregisterOptionsMenuItemInput
+): Promise<UnregisterOptionsMenuItemOutput> {
+  const itemId = sanitizeForId(input.id);
+  const el = document.getElementById(itemId);
+  if (el) {
+    el.remove();
+  }
+  return { ok: true };
 }
 
 /**
@@ -305,13 +337,13 @@ export async function registerTopSettingsDrawer(
   drawer.id = drawerId;
   drawer.className = `drawer st-api-top-drawer ${input.className ?? ''}`.trim();
 
-  // 创建 drawer-toggle (header)
+  // 创建 drawer-toggle
   const toggle = document.createElement('div');
-  toggle.className = 'drawer-toggle drawer-header';
+  toggle.className = 'drawer-toggle';
 
-  // 创建图标按钮
+  // 创建图标按钮（状态类由 updateVisualState 设置）
   const iconBtn = document.createElement('div');
-  iconBtn.className = `drawer-icon ${input.icon} closedIcon interactable`;
+  iconBtn.className = `drawer-icon ${input.icon} interactable`;
   if (input.title) {
     iconBtn.title = input.title;
   }
@@ -320,9 +352,9 @@ export async function registerTopSettingsDrawer(
 
   toggle.appendChild(iconBtn);
 
-  // 创建 drawer-content
+  // 创建 drawer-content（状态类由 updateVisualState 设置）
   const content = document.createElement('div');
-  content.className = 'drawer-content closedDrawer';
+  content.className = 'drawer-content';
 
   drawer.appendChild(toggle);
   drawer.appendChild(content);
@@ -355,10 +387,16 @@ export async function registerTopSettingsDrawer(
 
   const updateVisualState = () => {
     if (isOpen) {
+      // 展开状态：使用 openDrawer 和 openIcon
       content.classList.remove('closedDrawer');
+      content.classList.add('openDrawer');
       iconBtn.classList.remove('closedIcon');
+      iconBtn.classList.add('openIcon');
     } else {
+      // 关闭状态：使用 closedDrawer 和 closedIcon
+      content.classList.remove('openDrawer');
       content.classList.add('closedDrawer');
+      iconBtn.classList.remove('openIcon');
       iconBtn.classList.add('closedIcon');
     }
   };
@@ -381,7 +419,11 @@ export async function registerTopSettingsDrawer(
     }
   };
 
-  const toggleDrawer = () => {
+  const toggleDrawer = (e?: Event) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (isOpen) {
       closeDrawer();
     } else {
@@ -392,13 +434,14 @@ export async function registerTopSettingsDrawer(
   // 初始状态
   updateVisualState();
 
-  // 绑定点击事件
-  toggle.addEventListener('click', toggleDrawer);
+  // 绑定点击事件到图标按钮（而不是整个 toggle 区域，避免被酒馆的全局处理器干扰）
+  iconBtn.addEventListener('click', toggleDrawer);
 
   // 支持键盘操作
   iconBtn.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
+      e.stopPropagation();
       toggleDrawer();
     }
   });

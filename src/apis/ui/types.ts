@@ -111,6 +111,15 @@ export interface RegisterExtensionsMenuItemOutput {
   itemId: string;
 }
 
+export interface UnregisterExtensionsMenuItemInput {
+  /** 要注销的菜单项 ID（与注册时使用的 ID 相同） */
+  id: string;
+}
+
+export interface UnregisterExtensionsMenuItemOutput {
+  ok: true;
+}
+
 export interface RegisterOptionsMenuItemInput {
   /** 唯一 ID */
   id: string;
@@ -126,6 +135,15 @@ export interface RegisterOptionsMenuItemInput {
 
 export interface RegisterOptionsMenuItemOutput {
   itemId: string;
+}
+
+export interface UnregisterOptionsMenuItemInput {
+  /** 要注销的菜单项 ID（与注册时使用的 ID 相同） */
+  id: string;
+}
+
+export interface UnregisterOptionsMenuItemOutput {
+  ok: true;
 }
 
 export interface ReloadChatOutput {
@@ -189,7 +207,8 @@ export interface RegisterTopSettingsDrawerInput {
   content: TopSettingsDrawerContent;
 
   /**
-   * 插入位置（可选，0 为最顶端，默认追加到末尾）
+   * 插入位置，从左到右从 0 开始计数
+   * （0 为最左侧，默认追加到最右侧末尾）
    */
   index?: number;
 

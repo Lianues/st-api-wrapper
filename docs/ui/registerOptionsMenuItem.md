@@ -44,3 +44,7 @@ const result = await ST_API.ui.registerOptionsMenuItem({
   "itemId": "my-plugin_config"
 }
 ```
+
+## 相关 API
+
+- [ui.unregisterOptionsMenuItem](./unregisterOptionsMenuItem.md) - 注销选项菜单项

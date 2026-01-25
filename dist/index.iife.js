@@ -7539,6 +7539,14 @@ var __publicField = (obj, key, value) => {
     }
     return { itemId: item.id };
   }
+  async function unregisterExtensionsMenuItem(input) {
+    const containerId = `${sanitizeForId(input.id)}_ext_container`;
+    const el = document.getElementById(containerId);
+    if (el) {
+      el.remove();
+    }
+    return { ok: true };
+  }
   async function registerOptionsMenuItem(input) {
     await waitAppReady$1();
     let menu = document.querySelector("#options_button + .options-content");
@@ -7575,6 +7583,14 @@ var __publicField = (obj, key, value) => {
       menu.appendChild(item);
     }
     return { itemId: item.id };
+  }
+  async function unregisterOptionsMenuItem(input) {
+    const itemId = sanitizeForId(input.id);
+    const el = document.getElementById(itemId);
+    if (el) {
+      el.remove();
+    }
+    return { ok: true };
   }
   async function reloadChat() {
     var _a, _b;
@@ -7615,9 +7631,9 @@ var __publicField = (obj, key, value) => {
     drawer.id = drawerId;
     drawer.className = `drawer st-api-top-drawer ${input.className ?? ""}`.trim();
     const toggle = document.createElement("div");
-    toggle.className = "drawer-toggle drawer-header";
+    toggle.className = "drawer-toggle";
     const iconBtn = document.createElement("div");
-    iconBtn.className = `drawer-icon ${input.icon} closedIcon interactable`;
+    iconBtn.className = `drawer-icon ${input.icon} interactable`;
     if (input.title) {
       iconBtn.title = input.title;
     }
@@ -7625,7 +7641,7 @@ var __publicField = (obj, key, value) => {
     iconBtn.setAttribute("role", "button");
     toggle.appendChild(iconBtn);
     const content = document.createElement("div");
-    content.className = "drawer-content closedDrawer";
+    content.className = "drawer-content";
     drawer.appendChild(toggle);
     drawer.appendChild(content);
     if (typeof input.index === "number" && input.index >= 0 && input.index < topHolder.children.length) {
@@ -7649,9 +7665,13 @@ var __publicField = (obj, key, value) => {
     const updateVisualState = () => {
       if (isOpen) {
         content.classList.remove("closedDrawer");
+        content.classList.add("openDrawer");
         iconBtn.classList.remove("closedIcon");
+        iconBtn.classList.add("openIcon");
       } else {
+        content.classList.remove("openDrawer");
         content.classList.add("closedDrawer");
+        iconBtn.classList.remove("openIcon");
         iconBtn.classList.add("closedIcon");
       }
     };
@@ -7673,7 +7693,11 @@ var __publicField = (obj, key, value) => {
         await input.onClose();
       }
     };
-    const toggleDrawer = () => {
+    const toggleDrawer = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       if (isOpen) {
         closeDrawer();
       } else {
@@ -7681,10 +7705,11 @@ var __publicField = (obj, key, value) => {
       }
     };
     updateVisualState();
-    toggle.addEventListener("click", toggleDrawer);
+    iconBtn.addEventListener("click", toggleDrawer);
     iconBtn.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
+        e.stopPropagation();
         toggleDrawer();
       }
     });
@@ -7727,9 +7752,17 @@ var __publicField = (obj, key, value) => {
     name: "registerExtensionsMenuItem",
     handler: registerExtensionsMenuItem
   };
+  const unregisterExtensionsMenuItemEndpoint = {
+    name: "unregisterExtensionsMenuItem",
+    handler: unregisterExtensionsMenuItem
+  };
   const registerOptionsMenuItemEndpoint = {
     name: "registerOptionsMenuItem",
     handler: registerOptionsMenuItem
+  };
+  const unregisterOptionsMenuItemEndpoint = {
+    name: "unregisterOptionsMenuItem",
+    handler: unregisterOptionsMenuItem
   };
   const reloadChatEndpoint = {
     name: "reloadChat",
@@ -7754,7 +7787,9 @@ var __publicField = (obj, key, value) => {
       unregisterSettingsPanelEndpoint,
       listSettingsPanelsEndpoint,
       registerExtensionsMenuItemEndpoint,
+      unregisterExtensionsMenuItemEndpoint,
       registerOptionsMenuItemEndpoint,
+      unregisterOptionsMenuItemEndpoint,
       reloadChatEndpoint,
       reloadSettingsEndpoint,
       registerTopSettingsDrawerEndpoint,

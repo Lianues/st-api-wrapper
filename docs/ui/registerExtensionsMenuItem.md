@@ -46,3 +46,7 @@ console.log("已创建菜单项 ID:", result.itemId);
   "itemId": "my-plugin_action"
 }
 ```
+
+## 相关 API
+
+- [ui.unregisterExtensionsMenuItem](./unregisterExtensionsMenuItem.md) - 注销扩展菜单项

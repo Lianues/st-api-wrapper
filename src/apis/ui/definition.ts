@@ -4,8 +4,12 @@ import type {
   ListSettingsPanelsOutput,
   RegisterExtensionsMenuItemInput,
   RegisterExtensionsMenuItemOutput,
+  UnregisterExtensionsMenuItemInput,
+  UnregisterExtensionsMenuItemOutput,
   RegisterOptionsMenuItemInput,
   RegisterOptionsMenuItemOutput,
+  UnregisterOptionsMenuItemInput,
+  UnregisterOptionsMenuItemOutput,
   RegisterSettingsPanelInput,
   RegisterSettingsPanelOutput,
   ReloadChatOutput,
@@ -20,7 +24,9 @@ import type {
 import {
   listSettingsPanels,
   registerExtensionsMenuItem,
+  unregisterExtensionsMenuItem,
   registerOptionsMenuItem,
+  unregisterOptionsMenuItem,
   registerSettingsPanel,
   reloadChat,
   reloadSettings,
@@ -52,12 +58,28 @@ const registerExtensionsMenuItemEndpoint: EndpointDefinition<
   handler: registerExtensionsMenuItem,
 };
 
+const unregisterExtensionsMenuItemEndpoint: EndpointDefinition<
+  UnregisterExtensionsMenuItemInput,
+  UnregisterExtensionsMenuItemOutput
+> = {
+  name: 'unregisterExtensionsMenuItem',
+  handler: unregisterExtensionsMenuItem,
+};
+
 const registerOptionsMenuItemEndpoint: EndpointDefinition<
   RegisterOptionsMenuItemInput,
   RegisterOptionsMenuItemOutput
 > = {
   name: 'registerOptionsMenuItem',
   handler: registerOptionsMenuItem,
+};
+
+const unregisterOptionsMenuItemEndpoint: EndpointDefinition<
+  UnregisterOptionsMenuItemInput,
+  UnregisterOptionsMenuItemOutput
+> = {
+  name: 'unregisterOptionsMenuItem',
+  handler: unregisterOptionsMenuItem,
 };
 
 const reloadChatEndpoint: EndpointDefinition<void, ReloadChatOutput> = {
@@ -93,7 +115,9 @@ export const uiModuleDefinition: ApiModuleDefinition = {
     unregisterSettingsPanelEndpoint,
     listSettingsPanelsEndpoint,
     registerExtensionsMenuItemEndpoint,
+    unregisterExtensionsMenuItemEndpoint,
     registerOptionsMenuItemEndpoint,
+    unregisterOptionsMenuItemEndpoint,
     reloadChatEndpoint,
     reloadSettingsEndpoint,
     registerTopSettingsDrawerEndpoint,
