@@ -7372,14 +7372,15 @@ var __publicField = (obj, key, value) => {
     const api = String(mainApi ?? "");
     let streamedText = "";
     let streamedAny = false;
-    const onStreamToken = (delta) => {
-      const d = typeof delta === "string" ? delta : String(delta ?? "");
-      if (!d)
+    const onStreamToken = (fullOrDelta) => {
+      const full = typeof fullOrDelta === "string" ? fullOrDelta : String((fullOrDelta == null ? void 0 : fullOrDelta.text) ?? fullOrDelta ?? "");
+      if (!full)
         return;
       streamedAny = true;
-      streamedText += d;
+      const delta = full.startsWith(streamedText) ? full.slice(streamedText.length) : full;
+      streamedText = full;
       if (stream && onToken)
-        onToken(d, streamedText);
+        onToken(delta, full);
     };
     const hasExtraBlocks = Array.isArray(input == null ? void 0 : input.extraBlocks) && input.extraBlocks.length > 0;
     const onChatPromptReady = (data) => {

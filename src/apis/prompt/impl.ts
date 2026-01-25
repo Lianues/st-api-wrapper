@@ -627,12 +627,22 @@ export async function generate(input: GenerateInput): Promise<GenerateOutput> {
   let streamedText = '';
   let streamedAny = false;
 
-  const onStreamToken = (delta: any) => {
-    const d = typeof delta === 'string' ? delta : String(delta ?? '');
-    if (!d) return;
+  /**
+   * 酒馆 `STREAM_TOKEN_RECEIVED` 事件参数是“当前完整文本”（full），不是 delta。
+   * 因此这里要用前一次 full 来计算 delta，避免重复堆叠。
+   */
+  const onStreamToken = (fullOrDelta: any) => {
+    const full = typeof fullOrDelta === 'string'
+      ? fullOrDelta
+      : String((fullOrDelta as any)?.text ?? fullOrDelta ?? '');
+    if (!full) return;
+
     streamedAny = true;
-    streamedText += d;
-    if (stream && onToken) onToken(d, streamedText);
+
+    const delta = full.startsWith(streamedText) ? full.slice(streamedText.length) : full;
+    streamedText = full;
+
+    if (stream && onToken) onToken(delta, full);
   };
 
   const hasExtraBlocks = Array.isArray(input?.extraBlocks) && input.extraBlocks.length > 0;
