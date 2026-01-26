@@ -51,7 +51,7 @@
 
 当权限规则拒绝执行时，后端会返回 **403**。由于 `st-api-wrapper` 的 `postJson` 会对非 2xx 抛错，你需要用 `try/catch` 捕获：
 
-```js
+```typescript
 try {
   await ST_API.command.run({ command: 'python', args: ['--version'] });
 } catch (e) {
@@ -63,7 +63,7 @@ try {
 
 ## 最小可用示例：只放行 direct + python
 
-```js
+```typescript
 // 1) 查看当前配置
 const current = await ST_API.command.getSandbox();
 console.log(current.config);
@@ -99,7 +99,7 @@ console.log(r.exitCode, r.stdout, r.stderr);
 - `denyShellCommands=true`（避免 direct 直接跑 shell）
 - `blockedCommands` 里保留 `cmd/powershell/bash/sudo/rm/...` 等高危项
 
-```js
+```typescript
 // 切换为黑名单模式：允许除黑名单外的 direct 命令
 await ST_API.command.setSandbox({
   enabled: true,
