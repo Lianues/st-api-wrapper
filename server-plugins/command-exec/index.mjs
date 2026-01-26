@@ -1,12 +1,17 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
 export const info = {
     id: 'command-exec',
     name: 'Command Exec',
     description: 'Execute backend commands via SillyTavern server plugin.',
 };
+
+const PLUGIN_DIR = path.dirname(fileURLToPath(import.meta.url));
+const SANDBOX_CONFIG_PATH = path.join(PLUGIN_DIR, 'sandbox.config.json');
 
 // Optional dependency: SillyTavern server already includes iconv-lite.
 // If unavailable, we fall back to utf8 decoding.
@@ -564,6 +569,377 @@ function mergeEnv(rawEnv) {
 }
 
 /**
+ * Soft sandbox config (NOT OS-level isolation).
+ *
+ * @typedef {{
+ *   enabled: boolean,
+ *   allowDirect: boolean,
+ *   allowScript: boolean,
+ *   allowTerminalOverrides: boolean,
+ *   allowEnvOverride: boolean,
+ *   denyShellCommands: boolean,
+ *   commandListMode: string,
+ *   allowedCommands: string[],
+ *   blockedCommands: string[],
+ *   allowedCwdRoots: string[],
+ *   maxTimeoutMs: number,
+ *   allowedEnvKeys: string[],
+ * }} SandboxConfig
+ */
+
+/** @returns {string[]} */
+function defaultBlockedCommands() {
+    // NOTE: This is a "reasonable defaults" denylist, NOT a comprehensive security policy.
+    // Users can remove items in UI if needed.
+    if (process.platform === 'win32') {
+        return [
+            // shells
+            'cmd',
+            'cmd.exe',
+            'powershell',
+            'powershell.exe',
+            'pwsh',
+            'pwsh.exe',
+            // common "escape hatches"
+            'wsl',
+            'wsl.exe',
+            // destructive / system tools
+            'shutdown',
+            'shutdown.exe',
+            'diskpart',
+            'diskpart.exe',
+            'bcdedit',
+            'bcdedit.exe',
+            'reg',
+            'reg.exe',
+            'schtasks',
+            'schtasks.exe',
+            'taskkill',
+            'taskkill.exe',
+            'sc',
+            'sc.exe',
+            'net',
+            'net.exe',
+            'format',
+            'format.com',
+        ];
+    }
+    return [
+        // shells
+        'sh',
+        'bash',
+        'zsh',
+        'fish',
+        // privilege escalation / deletion / system control
+        'sudo',
+        'su',
+        'rm',
+        'dd',
+        'mkfs',
+        'chmod',
+        'chown',
+        'shutdown',
+        'reboot',
+        'poweroff',
+        'systemctl',
+        'service',
+        'kill',
+        'pkill',
+    ];
+}
+
+/** @returns {SandboxConfig} */
+function defaultSandboxConfig() {
+    return {
+        enabled: true,
+        allowDirect: true,
+        allowScript: false,
+        allowTerminalOverrides: false,
+        allowEnvOverride: false,
+        denyShellCommands: true,
+        commandListMode: 'allowlist',
+        allowedCommands: [],
+        blockedCommands: defaultBlockedCommands(),
+        allowedCwdRoots: [process.cwd()],
+        maxTimeoutMs: 10 * 60 * 1000,
+        allowedEnvKeys: [],
+    };
+}
+
+/**
+ * @param {any} v
+ * @param {boolean} fallback
+ */
+function toBool(v, fallback) {
+    if (typeof v === 'boolean') return v;
+    const s = asTrimmedString(v).toLowerCase();
+    if (s === 'true') return true;
+    if (s === 'false') return false;
+    return fallback;
+}
+
+/**
+ * @param {any} v
+ * @param {number} fallback
+ */
+function toNumber(v, fallback) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * @param {any} v
+ * @param {'allowlist'|'denylist'} fallback
+ * @returns {'allowlist'|'denylist'}
+ */
+function normalizeCommandListMode(v, fallback) {
+    const s = asTrimmedString(v).toLowerCase();
+    if (s === 'denylist' || s === 'blacklist' || s === 'deny') return 'denylist';
+    if (s === 'allowlist' || s === 'whitelist' || s === 'allow' || s === '') return 'allowlist';
+    return fallback;
+}
+
+/**
+ * @param {any} v
+ * @param {{ caseInsensitive?: boolean }} [options]
+ * @returns {string[]}
+ */
+function normalizeStringList(v, options = {}) {
+    const arr = Array.isArray(v) ? v : [];
+    /** @type {string[]} */
+    const out = [];
+    const set = new Set();
+    const ci = !!options.caseInsensitive;
+    for (const item of arr) {
+        const s = asTrimmedString(item);
+        if (!s) continue;
+        const key = ci ? s.toLowerCase() : s;
+        if (set.has(key)) continue;
+        set.add(key);
+        out.push(s);
+    }
+    return out;
+}
+
+/**
+ * @param {string} p
+ */
+function stripTrailingSep(p) {
+    const s = String(p || '');
+    const root = path.parse(s).root;
+    if (!s) return s;
+    if (s === root) return s;
+    return s.replace(/[\\\/]+$/g, '');
+}
+
+/**
+ * @param {string} p
+ */
+function normalizeFsPath(p) {
+    let out = stripTrailingSep(path.resolve(String(p || '')));
+    if (process.platform === 'win32') {
+        out = out.replace(/\//g, '\\').toLowerCase();
+    }
+    return out;
+}
+
+/**
+ * @param {string} childPath
+ * @param {string} rootPath
+ */
+function isPathInside(childPath, rootPath) {
+    const child = normalizeFsPath(childPath);
+    const root = normalizeFsPath(rootPath);
+    if (child === root) return true;
+    const sep = process.platform === 'win32' ? '\\' : '/';
+    return child.startsWith(root.endsWith(sep) ? root : root + sep);
+}
+
+/**
+ * @param {any} input
+ * @returns {SandboxConfig}
+ */
+function normalizeSandboxConfig(input) {
+    const d = defaultSandboxConfig();
+    const obj = input && typeof input === 'object' ? input : {};
+
+    const maxTimeoutMs = Math.max(0, Math.floor(toNumber(obj.maxTimeoutMs, d.maxTimeoutMs)));
+
+    const commandListMode = normalizeCommandListMode(obj.commandListMode, /** @type {'allowlist'|'denylist'} */ (d.commandListMode));
+
+    const allowedCwdRootsRaw = normalizeStringList(obj.allowedCwdRoots ?? d.allowedCwdRoots, {
+        caseInsensitive: process.platform === 'win32',
+    });
+    const allowedCwdRoots = normalizeStringList(
+        allowedCwdRootsRaw.map((p) => stripTrailingSep(path.resolve(p))),
+        { caseInsensitive: process.platform === 'win32' },
+    );
+
+    const allowedCommands = normalizeStringList(obj.allowedCommands ?? d.allowedCommands, {
+        caseInsensitive: process.platform === 'win32',
+    });
+    const blockedCommands = normalizeStringList(obj.blockedCommands ?? d.blockedCommands, {
+        caseInsensitive: process.platform === 'win32',
+    });
+    const allowedEnvKeys = normalizeStringList(obj.allowedEnvKeys ?? d.allowedEnvKeys, {
+        caseInsensitive: true,
+    });
+
+    return {
+        enabled: toBool(obj.enabled, d.enabled),
+        allowDirect: toBool(obj.allowDirect, d.allowDirect),
+        allowScript: toBool(obj.allowScript, d.allowScript),
+        allowTerminalOverrides: toBool(obj.allowTerminalOverrides, d.allowTerminalOverrides),
+        allowEnvOverride: toBool(obj.allowEnvOverride, d.allowEnvOverride),
+        denyShellCommands: toBool(obj.denyShellCommands, d.denyShellCommands),
+        commandListMode,
+        allowedCommands,
+        blockedCommands,
+        allowedCwdRoots,
+        maxTimeoutMs,
+        allowedEnvKeys,
+    };
+}
+
+/**
+ * @returns {{
+ *   config: SandboxConfig,
+ *   defaults: SandboxConfig,
+ *   file: { path: string, exists: boolean, error?: string },
+ * }}
+ */
+function loadSandboxConfig() {
+    const defaults = defaultSandboxConfig();
+    try {
+        if (!fs.existsSync(SANDBOX_CONFIG_PATH)) {
+            // Auto-create config file on first load so users can see/edit it directly.
+            // If creation fails (permission issues), fall back to in-memory defaults.
+            try {
+                const created = saveSandboxConfig(defaults);
+                return {
+                    config: created,
+                    defaults,
+                    file: { path: SANDBOX_CONFIG_PATH, exists: true },
+                };
+            } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e);
+                return {
+                    config: defaults,
+                    defaults,
+                    file: { path: SANDBOX_CONFIG_PATH, exists: false, error: `Failed to create config file: ${msg}` },
+                };
+            }
+        }
+        const raw = fs.readFileSync(SANDBOX_CONFIG_PATH, 'utf8');
+        const json = JSON.parse(raw);
+        const merged = { ...defaults, ...(json && typeof json === 'object' ? json : {}) };
+        return { config: normalizeSandboxConfig(merged), defaults, file: { path: SANDBOX_CONFIG_PATH, exists: true } };
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { config: defaults, defaults, file: { path: SANDBOX_CONFIG_PATH, exists: true, error: msg } };
+    }
+}
+
+/**
+ * @param {SandboxConfig} config
+ */
+function saveSandboxConfig(config) {
+    const normalized = normalizeSandboxConfig(config);
+    fs.writeFileSync(SANDBOX_CONFIG_PATH, JSON.stringify(normalized, null, 2), 'utf8');
+    return normalized;
+}
+
+const SHELL_COMMAND_BASENAMES = new Set([
+    'cmd',
+    'cmd.exe',
+    'powershell',
+    'powershell.exe',
+    'pwsh',
+    'pwsh.exe',
+    'bash',
+    'sh',
+    'zsh',
+    'fish',
+]);
+
+/**
+ * @param {string} command
+ */
+function isShellCommand(command) {
+    const base = path.basename(String(command || '')).toLowerCase();
+    return SHELL_COMMAND_BASENAMES.has(base);
+}
+
+/**
+ * @param {string} command
+ */
+function looksLikePath(command) {
+    const s = String(command || '');
+    return s.includes('/') || s.includes('\\') || /^[a-zA-Z]:/.test(s) || s.startsWith('\\\\');
+}
+
+/**
+ * @param {string} command
+ * @param {string[]} allowed
+ */
+function isAllowedCommand(command, allowed) {
+    if (!Array.isArray(allowed) || allowed.length === 0) return false;
+    const cmd = asTrimmedString(command);
+    if (!cmd) return false;
+
+    const cmdIsPath = looksLikePath(cmd);
+    const cmdBase = path.basename(cmd);
+    const cmdBaseNorm = process.platform === 'win32' ? cmdBase.toLowerCase() : cmdBase;
+    const cmdNorm = process.platform === 'win32' ? cmd.toLowerCase() : cmd;
+    const cmdFullNorm = cmdIsPath ? normalizeFsPath(cmd) : '';
+
+    for (const entry of allowed) {
+        const e = asTrimmedString(entry);
+        if (!e) continue;
+        const eIsPath = looksLikePath(e);
+        if (eIsPath) {
+            if (cmdIsPath && normalizeFsPath(e) === cmdFullNorm) return true;
+            continue;
+        }
+
+        const eNorm = process.platform === 'win32' ? e.toLowerCase() : e;
+        if (eNorm === cmdNorm) return true;
+        if (eNorm === cmdBaseNorm) return true;
+
+        if (process.platform === 'win32') {
+            const baseNoExt = cmdBaseNorm.replace(/\.(exe|cmd|bat)$/g, '');
+            if (eNorm === baseNoExt) return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @param {string} cwd
+ * @param {string[]} allowedRoots
+ */
+function isAllowedCwd(cwd, allowedRoots) {
+    if (!Array.isArray(allowedRoots) || allowedRoots.length === 0) return true;
+    for (const root of allowedRoots) {
+        if (!root) continue;
+        try {
+            if (isPathInside(cwd, root)) return true;
+        } catch {
+            // ignore
+        }
+    }
+    return false;
+}
+
+/**
+ * @param {any} envObj
+ */
+function hasAnyEnvOverride(envObj) {
+    if (!envObj || typeof envObj !== 'object') return false;
+    return Object.entries(envObj).some(([, v]) => v !== undefined && v !== null);
+}
+
+/**
  * Initialize plugin.
  * @param {import('express').Router} router Express router
  * @returns {Promise<any>} Promise that resolves when plugin is initialized
@@ -599,6 +975,26 @@ export async function init(router) {
                 }
                 : {}),
         });
+    });
+
+    router.post('/sandbox/get', async (_req, res) => {
+        const state = loadSandboxConfig();
+        res.json({ ok: true, ...state });
+    });
+
+    router.post('/sandbox/set', async (req, res) => {
+        const state = loadSandboxConfig();
+        const patch = req.body && typeof req.body === 'object'
+            ? (req.body.config && typeof req.body.config === 'object' ? req.body.config : req.body)
+            : {};
+        const merged = { ...state.config, ...(patch && typeof patch === 'object' ? patch : {}) };
+        try {
+            const saved = saveSandboxConfig(/** @type {SandboxConfig} */ (merged));
+            res.json({ ok: true, config: saved, defaults: state.defaults, file: { path: SANDBOX_CONFIG_PATH, exists: true } });
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            res.status(500).json({ ok: false, error: `Failed to save sandbox config: ${msg}` });
+        }
     });
 
     router.post('/env', async (req, res) => {
@@ -653,12 +1049,84 @@ export async function init(router) {
         const cwd = asTrimmedString(req.body?.cwd) || undefined;
         const stdin = typeof req.body?.stdin === 'string' ? req.body.stdin : undefined;
         const timeoutMs = Number(req.body?.timeoutMs);
-        const env = mergeEnv(req.body?.env);
         const outputEncoding = asTrimmedString(req.body?.outputEncoding) || 'auto';
+
+        const sandboxState = loadSandboxConfig();
+        const sandbox = sandboxState.config;
+        const sandboxEnabled = !!sandbox.enabled;
+        const effectiveCwd = cwd || process.cwd();
+
+        // Enforce cwd allowlist (both modes)
+        if (sandboxEnabled && !isAllowedCwd(effectiveCwd, sandbox.allowedCwdRoots)) {
+            res.status(403).json({
+                ok: false,
+                error: `Sandbox denied: cwd not allowed (${effectiveCwd}). Please add it into allowedCwdRoots.`,
+            });
+            return;
+        }
+
+        // Enforce env override policy
+        const envOverride = req.body?.env;
+        if (sandboxEnabled && hasAnyEnvOverride(envOverride)) {
+            if (!sandbox.allowEnvOverride) {
+                res.status(403).json({ ok: false, error: 'Sandbox denied: env override is disabled (allowEnvOverride=false).' });
+                return;
+            }
+            if (Array.isArray(sandbox.allowedEnvKeys) && sandbox.allowedEnvKeys.length > 0) {
+                const allowedSet = new Set(sandbox.allowedEnvKeys.map((k) => String(k).toLowerCase()));
+                const bad = Object.entries(envOverride || {})
+                    .filter(([, v]) => v !== undefined && v !== null)
+                    .map(([k]) => String(k))
+                    .filter((k) => !allowedSet.has(k.toLowerCase()));
+                if (bad.length > 0) {
+                    res.status(403).json({
+                        ok: false,
+                        error: `Sandbox denied: env keys not allowed: ${bad.join(', ')}`,
+                    });
+                    return;
+                }
+            }
+        }
+
+        const env = sandboxEnabled && !sandbox.allowEnvOverride ? process.env : mergeEnv(envOverride);
+
+        // Enforce timeout limit (and apply default max when sandbox enabled)
+        const effectiveTimeoutMs = (() => {
+            const max = Number(sandbox.maxTimeoutMs);
+            if (sandboxEnabled && Number.isFinite(max) && max > 0) {
+                if (Number.isFinite(timeoutMs) && timeoutMs > 0) return Math.min(timeoutMs, max);
+                return max;
+            }
+            return Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : undefined;
+        })();
 
         // Script mode: run via terminal
         if (rawScript) {
-            const resolved = resolveTerminal(req.body?.terminal, req.body?.terminalCommand, req.body?.terminalArgs);
+            if (sandboxEnabled && !sandbox.allowScript) {
+                res.status(403).json({ ok: false, error: 'Sandbox denied: script mode is disabled (allowScript=false).' });
+                return;
+            }
+
+            // Optional: disallow overriding terminal command/args
+            const terminalCommandInput = req.body?.terminalCommand;
+            const terminalArgsInput = req.body?.terminalArgs;
+            if (sandboxEnabled && !sandbox.allowTerminalOverrides) {
+                const hasCmd = asTrimmedString(terminalCommandInput);
+                const hasArgs = Array.isArray(terminalArgsInput) && terminalArgsInput.length > 0;
+                if (hasCmd || hasArgs) {
+                    res.status(403).json({
+                        ok: false,
+                        error: 'Sandbox denied: terminal overrides are disabled (allowTerminalOverrides=false).',
+                    });
+                    return;
+                }
+            }
+
+            const resolved = resolveTerminal(
+                req.body?.terminal,
+                sandboxEnabled && !sandbox.allowTerminalOverrides ? null : terminalCommandInput,
+                sandboxEnabled && !sandbox.allowTerminalOverrides ? null : terminalArgsInput,
+            );
             const argsTemplate = resolved.argsTemplate;
 
             // Optional normalization for Windows shells:
@@ -675,7 +1143,7 @@ export async function init(router) {
                 cwd,
                 env,
                 stdin,
-                timeoutMs: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : undefined,
+                timeoutMs: effectiveTimeoutMs,
                 outputEncoding,
             });
 
@@ -701,12 +1169,40 @@ export async function init(router) {
             return;
         }
 
+        if (sandboxEnabled) {
+            if (!sandbox.allowDirect) {
+                res.status(403).json({ ok: false, error: 'Sandbox denied: direct mode is disabled (allowDirect=false).' });
+                return;
+            }
+            if (sandbox.denyShellCommands && isShellCommand(command)) {
+                res.status(403).json({ ok: false, error: `Sandbox denied: shell command is blocked: ${command}` });
+                return;
+            }
+            if (sandbox.commandListMode === 'denylist') {
+                if (isAllowedCommand(command, sandbox.blockedCommands)) {
+                    res.status(403).json({
+                        ok: false,
+                        error: `Sandbox denied: command is in blockedCommands: ${command}`,
+                    });
+                    return;
+                }
+            } else {
+                if (!isAllowedCommand(command, sandbox.allowedCommands)) {
+                    res.status(403).json({
+                        ok: false,
+                        error: `Sandbox denied: command is not in allowedCommands: ${command}`,
+                    });
+                    return;
+                }
+            }
+        }
+
         const args = asStringArray(req.body?.args);
         const r = await spawnAndCapture(command, args, {
             cwd,
             env,
             stdin,
-            timeoutMs: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : undefined,
+            timeoutMs: effectiveTimeoutMs,
             outputEncoding,
         });
 

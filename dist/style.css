@@ -159,3 +159,92 @@ pre[data-v-5dcd21f5] {
   border: 1px solid var(--SmartThemeBorderColor);
   background: rgba(255, 255, 255, 0.04);
 }
+
+.st-api-wrapper-panel[data-v-4f9dbfcf] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.menu_button[data-v-4f9dbfcf] {
+  white-space: nowrap;
+  word-break: keep-all;
+  writing-mode: horizontal-tb;
+}
+.actions[data-v-4f9dbfcf] {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.status[data-v-4f9dbfcf] {
+  opacity: 0.95;
+}
+.details[data-v-4f9dbfcf] {
+  border-top: 1px solid var(--SmartThemeBorderColor);
+  padding-top: 10px;
+}
+.form[data-v-4f9dbfcf] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+.row[data-v-4f9dbfcf] {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.field[data-v-4f9dbfcf] {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 260px;
+}
+.field.checkbox[data-v-4f9dbfcf] {
+  flex-direction: row;
+  align-items: center;
+  min-width: unset;
+}
+.label[data-v-4f9dbfcf] {
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+.text[data-v-4f9dbfcf] {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--SmartThemeBorderColor);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+}
+.list[data-v-4f9dbfcf] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.list-row[data-v-4f9dbfcf] {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.hint[data-v-4f9dbfcf] {
+  opacity: 0.9;
+}
+.warn[data-v-4f9dbfcf] {
+  margin-top: 6px;
+  color: #ffa502;
+}
+.error[data-v-4f9dbfcf] {
+  margin-top: 6px;
+  color: #ff6b81;
+}
+.muted[data-v-4f9dbfcf] {
+  opacity: 0.75;
+}
+.danger-text[data-v-4f9dbfcf] {
+  color: #ff6b81;
+}
+.tips[data-v-4f9dbfcf] {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  opacity: 0.95;
+}

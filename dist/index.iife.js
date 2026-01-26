@@ -5509,6 +5509,11 @@ var __publicField = (obj, key, value) => {
   function createTextVNode(text = " ", flag = 0) {
     return createVNode(Text, null, text, flag);
   }
+  function createStaticVNode(content, numberOfNodes) {
+    const vnode = createVNode(Static, null, content);
+    vnode.staticCount = numberOfNodes;
+    return vnode;
+  }
   function createCommentVNode(text = "", asBlock = false) {
     return asBlock ? (openBlock(), createBlock(Comment, null, text)) : createVNode(Comment, null, text);
   }
@@ -6547,21 +6552,21 @@ var __publicField = (obj, key, value) => {
     }
     return container;
   }
-  const _hoisted_1$1 = { class: "st-api-wrapper-panel" };
-  const _hoisted_2$1 = { class: "status" };
-  const _hoisted_3$1 = { key: 0 };
-  const _hoisted_4$1 = { key: 1 };
-  const _hoisted_5$1 = {
+  const _hoisted_1$2 = { class: "st-api-wrapper-panel" };
+  const _hoisted_2$2 = { class: "status" };
+  const _hoisted_3$2 = { key: 0 };
+  const _hoisted_4$2 = { key: 1 };
+  const _hoisted_5$2 = {
     key: 2,
     class: "error"
   };
-  const _hoisted_6$1 = {
+  const _hoisted_6$2 = {
     key: 0,
     class: "details"
   };
-  const _hoisted_7$1 = { class: "messages-list" };
-  const _hoisted_8$1 = { class: "role-tag" };
-  const _sfc_main$1 = /* @__PURE__ */ defineComponent({
+  const _hoisted_7$2 = { class: "messages-list" };
+  const _hoisted_8$2 = { class: "role-tag" };
+  const _sfc_main$2 = /* @__PURE__ */ defineComponent({
     __name: "App",
     setup(__props) {
       const endpoints2 = /* @__PURE__ */ ref([]);
@@ -6604,7 +6609,7 @@ var __publicField = (obj, key, value) => {
         }
       }
       return (_ctx, _cache) => {
-        return openBlock(), createElementBlock("div", _hoisted_1$1, [
+        return openBlock(), createElementBlock("div", _hoisted_1$2, [
           createBaseVNode("div", { class: "actions flex-container" }, [
             createBaseVNode("button", {
               class: "menu_button",
@@ -6617,21 +6622,21 @@ var __publicField = (obj, key, value) => {
               onClick: fetchPrompt
             }, "抓取最终提示词（控制台）")
           ]),
-          createBaseVNode("div", _hoisted_2$1, [
+          createBaseVNode("div", _hoisted_2$2, [
             createBaseVNode("div", null, "已注册 endpoints：" + toDisplayString(endpoints2.value.length), 1),
-            lastPrompt.value ? (openBlock(), createElementBlock("div", _hoisted_3$1, "上次抓取消息数：" + toDisplayString(lastPrompt.value.chat.length), 1)) : createCommentVNode("", true),
-            loading.value ? (openBlock(), createElementBlock("div", _hoisted_4$1, "正在构建提示词...")) : createCommentVNode("", true),
-            error.value ? (openBlock(), createElementBlock("div", _hoisted_5$1, toDisplayString(error.value), 1)) : createCommentVNode("", true)
+            lastPrompt.value ? (openBlock(), createElementBlock("div", _hoisted_3$2, "上次抓取消息数：" + toDisplayString(lastPrompt.value.chat.length), 1)) : createCommentVNode("", true),
+            loading.value ? (openBlock(), createElementBlock("div", _hoisted_4$2, "正在构建提示词...")) : createCommentVNode("", true),
+            error.value ? (openBlock(), createElementBlock("div", _hoisted_5$2, toDisplayString(error.value), 1)) : createCommentVNode("", true)
           ]),
-          lastPrompt.value ? (openBlock(), createElementBlock("details", _hoisted_6$1, [
+          lastPrompt.value ? (openBlock(), createElementBlock("details", _hoisted_6$2, [
             _cache[0] || (_cache[0] = createBaseVNode("summary", null, "预览 messages（前 5 条）", -1)),
-            createBaseVNode("div", _hoisted_7$1, [
+            createBaseVNode("div", _hoisted_7$2, [
               (openBlock(true), createElementBlock(Fragment, null, renderList(previewMessages.value, (msg, idx) => {
                 return openBlock(), createElementBlock("div", {
                   key: idx,
                   class: normalizeClass(["message-item", msg.role])
                 }, [
-                  createBaseVNode("span", _hoisted_8$1, toDisplayString(msg.role.toUpperCase()), 1),
+                  createBaseVNode("span", _hoisted_8$2, toDisplayString(msg.role.toUpperCase()), 1),
                   createBaseVNode("pre", null, toDisplayString("parts" in msg ? msg.parts.map((p2) => "text" in p2 ? p2.text : "").join("") : msg.content), 1)
                 ], 2);
               }), 128))
@@ -6649,70 +6654,70 @@ var __publicField = (obj, key, value) => {
     }
     return target;
   };
-  const App = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-5dcd21f5"]]);
-  const _hoisted_1 = { class: "st-api-wrapper-panel" };
-  const _hoisted_2 = { class: "actions flex-container" };
-  const _hoisted_3 = ["disabled"];
-  const _hoisted_4 = ["disabled"];
-  const _hoisted_5 = { class: "status" };
-  const _hoisted_6 = { key: 0 };
-  const _hoisted_7 = {
+  const App = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-5dcd21f5"]]);
+  const _hoisted_1$1 = { class: "st-api-wrapper-panel" };
+  const _hoisted_2$1 = { class: "actions flex-container" };
+  const _hoisted_3$1 = ["disabled"];
+  const _hoisted_4$1 = ["disabled"];
+  const _hoisted_5$1 = { class: "status" };
+  const _hoisted_6$1 = { key: 0 };
+  const _hoisted_7$1 = {
     key: 1,
     class: "warn"
   };
-  const _hoisted_8 = {
+  const _hoisted_8$1 = {
     key: 2,
     class: "error"
   };
-  const _hoisted_9 = {
+  const _hoisted_9$1 = {
     class: "details",
     open: ""
   };
-  const _hoisted_10 = { class: "form" };
-  const _hoisted_11 = { class: "row" };
-  const _hoisted_12 = { class: "field" };
-  const _hoisted_13 = { class: "field" };
-  const _hoisted_14 = { class: "field checkbox" };
-  const _hoisted_15 = { class: "field" };
-  const _hoisted_16 = { class: "row" };
-  const _hoisted_17 = { class: "field" };
-  const _hoisted_18 = { class: "field" };
-  const _hoisted_19 = { class: "field" };
-  const _hoisted_20 = { class: "file-row" };
-  const _hoisted_21 = ["disabled"];
-  const _hoisted_22 = ["disabled"];
-  const _hoisted_23 = { class: "field" };
-  const _hoisted_24 = { class: "actions flex-container" };
-  const _hoisted_25 = ["disabled"];
-  const _hoisted_26 = {
+  const _hoisted_10$1 = { class: "form" };
+  const _hoisted_11$1 = { class: "row" };
+  const _hoisted_12$1 = { class: "field" };
+  const _hoisted_13$1 = { class: "field" };
+  const _hoisted_14$1 = { class: "field checkbox" };
+  const _hoisted_15$1 = { class: "field" };
+  const _hoisted_16$1 = { class: "row" };
+  const _hoisted_17$1 = { class: "field" };
+  const _hoisted_18$1 = { class: "field" };
+  const _hoisted_19$1 = { class: "field" };
+  const _hoisted_20$1 = { class: "file-row" };
+  const _hoisted_21$1 = ["disabled"];
+  const _hoisted_22$1 = ["disabled"];
+  const _hoisted_23$1 = { class: "field" };
+  const _hoisted_24$1 = { class: "actions flex-container" };
+  const _hoisted_25$1 = ["disabled"];
+  const _hoisted_26$1 = {
     class: "details",
     open: ""
   };
-  const _hoisted_27 = { class: "table-wrap" };
-  const _hoisted_28 = { class: "table" };
-  const _hoisted_29 = { key: 0 };
-  const _hoisted_30 = { class: "muted" };
-  const _hoisted_31 = {
+  const _hoisted_27$1 = { class: "table-wrap" };
+  const _hoisted_28$1 = { class: "table" };
+  const _hoisted_29$1 = { key: 0 };
+  const _hoisted_30$1 = { class: "muted" };
+  const _hoisted_31$1 = {
     key: 1,
     class: "muted"
   };
-  const _hoisted_32 = { key: 0 };
-  const _hoisted_33 = { key: 1 };
-  const _hoisted_34 = { class: "muted" };
-  const _hoisted_35 = {
+  const _hoisted_32$1 = { key: 0 };
+  const _hoisted_33$1 = { key: 1 };
+  const _hoisted_34$1 = { class: "muted" };
+  const _hoisted_35$1 = {
     key: 0,
     class: "error"
   };
-  const _hoisted_36 = { key: 1 };
-  const _hoisted_37 = ["onClick", "disabled"];
-  const _hoisted_38 = ["onClick", "disabled"];
-  const _hoisted_39 = { key: 0 };
-  const _hoisted_40 = {
+  const _hoisted_36$1 = { key: 1 };
+  const _hoisted_37$1 = ["onClick", "disabled"];
+  const _hoisted_38$1 = ["onClick", "disabled"];
+  const _hoisted_39$1 = { key: 0 };
+  const _hoisted_40$1 = {
     key: 0,
     class: "details"
   };
-  const _hoisted_41 = { class: "json" };
-  const _sfc_main = /* @__PURE__ */ defineComponent({
+  const _hoisted_41$1 = { class: "json" };
+  const _sfc_main$1 = /* @__PURE__ */ defineComponent({
     __name: "ServerPluginManager",
     setup(__props) {
       function getApi() {
@@ -6946,35 +6951,35 @@ var __publicField = (obj, key, value) => {
         refreshList();
       });
       return (_ctx, _cache) => {
-        return openBlock(), createElementBlock("div", _hoisted_1, [
-          createBaseVNode("div", _hoisted_2, [
+        return openBlock(), createElementBlock("div", _hoisted_1$1, [
+          createBaseVNode("div", _hoisted_2$1, [
             createBaseVNode("button", {
               class: "menu_button",
               type: "button",
               onClick: refreshList,
               disabled: loading.value
-            }, " 刷新列表 ", 8, _hoisted_3),
+            }, " 刷新列表 ", 8, _hoisted_3$1),
             createBaseVNode("button", {
               class: "menu_button",
               type: "button",
               onClick: manualRestart,
               disabled: loading.value || restarting.value
-            }, " 重启酒馆（后端） ", 8, _hoisted_4)
+            }, " 重启酒馆（后端） ", 8, _hoisted_4$1)
           ]),
-          createBaseVNode("div", _hoisted_5, [
-            pluginsRoot.value ? (openBlock(), createElementBlock("div", _hoisted_6, [
+          createBaseVNode("div", _hoisted_5$1, [
+            pluginsRoot.value ? (openBlock(), createElementBlock("div", _hoisted_6$1, [
               _cache[7] || (_cache[7] = createTextVNode("plugins 目录：", -1)),
               createBaseVNode("code", null, toDisplayString(pluginsRoot.value), 1)
             ])) : createCommentVNode("", true),
             createBaseVNode("div", null, "已发现插件：" + toDisplayString(plugins.value.length), 1),
-            restarting.value ? (openBlock(), createElementBlock("div", _hoisted_7, "正在重启中：" + toDisplayString(restartMessage.value), 1)) : createCommentVNode("", true),
-            error.value ? (openBlock(), createElementBlock("div", _hoisted_8, toDisplayString(error.value), 1)) : createCommentVNode("", true)
+            restarting.value ? (openBlock(), createElementBlock("div", _hoisted_7$1, "正在重启中：" + toDisplayString(restartMessage.value), 1)) : createCommentVNode("", true),
+            error.value ? (openBlock(), createElementBlock("div", _hoisted_8$1, toDisplayString(error.value), 1)) : createCommentVNode("", true)
           ]),
-          createBaseVNode("details", _hoisted_9, [
+          createBaseVNode("details", _hoisted_9$1, [
             _cache[18] || (_cache[18] = createBaseVNode("summary", null, "安装 Server Plugin", -1)),
-            createBaseVNode("div", _hoisted_10, [
-              createBaseVNode("div", _hoisted_11, [
-                createBaseVNode("label", _hoisted_12, [
+            createBaseVNode("div", _hoisted_10$1, [
+              createBaseVNode("div", _hoisted_11$1, [
+                createBaseVNode("label", _hoisted_12$1, [
                   _cache[9] || (_cache[9] = createBaseVNode("div", { class: "label" }, "安装方式", -1)),
                   withDirectives(createBaseVNode("select", {
                     class: "text",
@@ -6986,7 +6991,7 @@ var __publicField = (obj, key, value) => {
                     [vModelSelect, installMethod.value]
                   ])
                 ]),
-                createBaseVNode("label", _hoisted_13, [
+                createBaseVNode("label", _hoisted_13$1, [
                   _cache[11] || (_cache[11] = createBaseVNode("div", { class: "label" }, "restartMode", -1)),
                   withDirectives(createBaseVNode("select", {
                     class: "text",
@@ -6998,7 +7003,7 @@ var __publicField = (obj, key, value) => {
                     [vModelSelect, restartMode.value]
                   ])
                 ]),
-                createBaseVNode("label", _hoisted_14, [
+                createBaseVNode("label", _hoisted_14$1, [
                   withDirectives(createBaseVNode("input", {
                     type: "checkbox",
                     "onUpdate:modelValue": _cache[2] || (_cache[2] = ($event) => restartAfterOp.value = $event)
@@ -7009,7 +7014,7 @@ var __publicField = (obj, key, value) => {
                 ])
               ]),
               installMethod.value === "git" ? (openBlock(), createElementBlock(Fragment, { key: 0 }, [
-                createBaseVNode("label", _hoisted_15, [
+                createBaseVNode("label", _hoisted_15$1, [
                   _cache[13] || (_cache[13] = createBaseVNode("div", { class: "label" }, "gitUrl", -1)),
                   withDirectives(createBaseVNode("input", {
                     class: "text",
@@ -7019,8 +7024,8 @@ var __publicField = (obj, key, value) => {
                     [vModelText, gitUrl.value]
                   ])
                 ]),
-                createBaseVNode("div", _hoisted_16, [
-                  createBaseVNode("label", _hoisted_17, [
+                createBaseVNode("div", _hoisted_16$1, [
+                  createBaseVNode("label", _hoisted_17$1, [
                     _cache[14] || (_cache[14] = createBaseVNode("div", { class: "label" }, "folderName（可选）", -1)),
                     withDirectives(createBaseVNode("input", {
                       class: "text",
@@ -7030,7 +7035,7 @@ var __publicField = (obj, key, value) => {
                       [vModelText, folderName.value]
                     ])
                   ]),
-                  createBaseVNode("label", _hoisted_18, [
+                  createBaseVNode("label", _hoisted_18$1, [
                     _cache[15] || (_cache[15] = createBaseVNode("div", { class: "label" }, "branch（可选）", -1)),
                     withDirectives(createBaseVNode("input", {
                       class: "text",
@@ -7042,9 +7047,9 @@ var __publicField = (obj, key, value) => {
                   ])
                 ])
               ], 64)) : (openBlock(), createElementBlock(Fragment, { key: 1 }, [
-                createBaseVNode("label", _hoisted_19, [
+                createBaseVNode("label", _hoisted_19$1, [
                   _cache[16] || (_cache[16] = createBaseVNode("div", { class: "label" }, "上传 ZIP 文件", -1)),
-                  createBaseVNode("div", _hoisted_20, [
+                  createBaseVNode("div", _hoisted_20$1, [
                     createBaseVNode("input", {
                       ref_key: "zipInputEl",
                       ref: zipInputEl,
@@ -7058,7 +7063,7 @@ var __publicField = (obj, key, value) => {
                       type: "button",
                       onClick: chooseZip,
                       disabled: loading.value || restarting.value
-                    }, " 上传 ZIP 文件 ", 8, _hoisted_21),
+                    }, " 上传 ZIP 文件 ", 8, _hoisted_21$1),
                     createBaseVNode("span", {
                       class: normalizeClass(["file-name", { muted: !zipFile.value }])
                     }, toDisplayString(zipFile.value ? zipFile.value.name : "未选择文件"), 3),
@@ -7068,10 +7073,10 @@ var __publicField = (obj, key, value) => {
                       type: "button",
                       onClick: clearZip,
                       disabled: loading.value || restarting.value
-                    }, " 清除 ", 8, _hoisted_22)) : createCommentVNode("", true)
+                    }, " 清除 ", 8, _hoisted_22$1)) : createCommentVNode("", true)
                   ])
                 ]),
-                createBaseVNode("label", _hoisted_23, [
+                createBaseVNode("label", _hoisted_23$1, [
                   _cache[17] || (_cache[17] = createBaseVNode("div", { class: "label" }, "folderName（可选）", -1)),
                   withDirectives(createBaseVNode("input", {
                     class: "text",
@@ -7082,20 +7087,20 @@ var __publicField = (obj, key, value) => {
                   ])
                 ])
               ], 64)),
-              createBaseVNode("div", _hoisted_24, [
+              createBaseVNode("div", _hoisted_24$1, [
                 createBaseVNode("button", {
                   class: "menu_button",
                   type: "button",
                   onClick: installSelected,
                   disabled: loading.value || restarting.value || (installMethod.value === "git" ? !gitUrl.value.trim() : !zipFile.value)
-                }, " 安装 ", 8, _hoisted_25)
+                }, " 安装 ", 8, _hoisted_25$1)
               ])
             ])
           ]),
-          createBaseVNode("details", _hoisted_26, [
+          createBaseVNode("details", _hoisted_26$1, [
             _cache[22] || (_cache[22] = createBaseVNode("summary", null, "已安装插件", -1)),
-            createBaseVNode("div", _hoisted_27, [
-              createBaseVNode("table", _hoisted_28, [
+            createBaseVNode("div", _hoisted_27$1, [
+              createBaseVNode("table", _hoisted_28$1, [
                 _cache[21] || (_cache[21] = createBaseVNode("thead", null, [
                   createBaseVNode("tr", null, [
                     createBaseVNode("th", null, "name"),
@@ -7115,20 +7120,20 @@ var __publicField = (obj, key, value) => {
                       ]),
                       createBaseVNode("td", null, toDisplayString(p2.kind), 1),
                       createBaseVNode("td", null, [
-                        p2.info ? (openBlock(), createElementBlock("div", _hoisted_29, [
+                        p2.info ? (openBlock(), createElementBlock("div", _hoisted_29$1, [
                           createBaseVNode("div", null, [
                             createBaseVNode("b", null, toDisplayString(p2.info.name), 1),
                             _cache[19] || (_cache[19] = createTextVNode()),
                             createBaseVNode("small", null, "(" + toDisplayString(p2.info.id) + ")", 1)
                           ]),
-                          createBaseVNode("div", _hoisted_30, toDisplayString(p2.info.description), 1)
-                        ])) : (openBlock(), createElementBlock("div", _hoisted_31, [
-                          p2.infoError ? (openBlock(), createElementBlock("span", _hoisted_32, "infoError: " + toDisplayString(p2.infoError), 1)) : (openBlock(), createElementBlock("span", _hoisted_33, "（无 info）"))
+                          createBaseVNode("div", _hoisted_30$1, toDisplayString(p2.info.description), 1)
+                        ])) : (openBlock(), createElementBlock("div", _hoisted_31$1, [
+                          p2.infoError ? (openBlock(), createElementBlock("span", _hoisted_32$1, "infoError: " + toDisplayString(p2.infoError), 1)) : (openBlock(), createElementBlock("span", _hoisted_33$1, "（无 info）"))
                         ]))
                       ]),
-                      createBaseVNode("td", _hoisted_34, [
-                        p2.entryMissing ? (openBlock(), createElementBlock("div", _hoisted_35, "entryMissing")) : createCommentVNode("", true),
-                        p2.entryFile ? (openBlock(), createElementBlock("div", _hoisted_36, [
+                      createBaseVNode("td", _hoisted_34$1, [
+                        p2.entryMissing ? (openBlock(), createElementBlock("div", _hoisted_35$1, "entryMissing")) : createCommentVNode("", true),
+                        p2.entryFile ? (openBlock(), createElementBlock("div", _hoisted_36$1, [
                           createBaseVNode("code", null, toDisplayString(p2.entryFile), 1)
                         ])) : createCommentVNode("", true)
                       ]),
@@ -7138,17 +7143,17 @@ var __publicField = (obj, key, value) => {
                           type: "button",
                           onClick: ($event) => loadDetail(p2.name),
                           disabled: loading.value
-                        }, " 获取 ", 8, _hoisted_37),
+                        }, " 获取 ", 8, _hoisted_37$1),
                         createBaseVNode("button", {
                           class: "menu_button danger",
                           type: "button",
                           onClick: ($event) => deleteOne(p2.name),
                           disabled: loading.value || restarting.value
-                        }, " 删除 ", 8, _hoisted_38)
+                        }, " 删除 ", 8, _hoisted_38$1)
                       ])
                     ]);
                   }), 128)),
-                  plugins.value.length === 0 ? (openBlock(), createElementBlock("tr", _hoisted_39, [..._cache[20] || (_cache[20] = [
+                  plugins.value.length === 0 ? (openBlock(), createElementBlock("tr", _hoisted_39$1, [..._cache[20] || (_cache[20] = [
                     createBaseVNode("td", {
                       colspan: "5",
                       class: "muted"
@@ -7158,16 +7163,589 @@ var __publicField = (obj, key, value) => {
               ])
             ])
           ]),
-          detail.value ? (openBlock(), createElementBlock("details", _hoisted_40, [
+          detail.value ? (openBlock(), createElementBlock("details", _hoisted_40$1, [
             createBaseVNode("summary", null, "当前详情：" + toDisplayString(detail.value.name), 1),
-            createBaseVNode("pre", _hoisted_41, toDisplayString(JSON.stringify(detail.value, null, 2)), 1)
+            createBaseVNode("pre", _hoisted_41$1, toDisplayString(JSON.stringify(detail.value, null, 2)), 1)
           ])) : createCommentVNode("", true)
         ]);
       };
     }
   });
   const ServerPluginManager_vue_vue_type_style_index_0_scoped_36d515f4_lang = "";
-  const ServerPluginManager = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-36d515f4"]]);
+  const ServerPluginManager = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-36d515f4"]]);
+  const _hoisted_1 = { class: "st-api-wrapper-panel" };
+  const _hoisted_2 = { class: "actions flex-container" };
+  const _hoisted_3 = ["disabled"];
+  const _hoisted_4 = ["disabled"];
+  const _hoisted_5 = ["disabled"];
+  const _hoisted_6 = {
+    key: 0,
+    class: "master-toggle"
+  };
+  const _hoisted_7 = { class: "field checkbox" };
+  const _hoisted_8 = ["checked", "disabled"];
+  const _hoisted_9 = { class: "status" };
+  const _hoisted_10 = { key: 0 };
+  const _hoisted_11 = {
+    key: 0,
+    class: "muted"
+  };
+  const _hoisted_12 = {
+    key: 1,
+    class: "warn"
+  };
+  const _hoisted_13 = {
+    key: 2,
+    class: "muted"
+  };
+  const _hoisted_14 = {
+    key: 3,
+    class: "warn"
+  };
+  const _hoisted_15 = {
+    key: 4,
+    class: "warn"
+  };
+  const _hoisted_16 = {
+    key: 5,
+    class: "error"
+  };
+  const _hoisted_17 = {
+    key: 1,
+    class: "details",
+    open: ""
+  };
+  const _hoisted_18 = { class: "form" };
+  const _hoisted_19 = { class: "row" };
+  const _hoisted_20 = { class: "field checkbox" };
+  const _hoisted_21 = { class: "field checkbox" };
+  const _hoisted_22 = { class: "field checkbox" };
+  const _hoisted_23 = { class: "row" };
+  const _hoisted_24 = { class: "field checkbox" };
+  const _hoisted_25 = { class: "field checkbox" };
+  const _hoisted_26 = { class: "field" };
+  const _hoisted_27 = { class: "field" };
+  const _hoisted_28 = { class: "hint muted" };
+  const _hoisted_29 = {
+    key: 2,
+    class: "details",
+    open: ""
+  };
+  const _hoisted_30 = { class: "form" };
+  const _hoisted_31 = { class: "list" };
+  const _hoisted_32 = ["onUpdate:modelValue"];
+  const _hoisted_33 = ["onClick", "disabled"];
+  const _hoisted_34 = ["disabled"];
+  const _hoisted_35 = {
+    key: 3,
+    class: "details",
+    open: ""
+  };
+  const _hoisted_36 = { class: "form" };
+  const _hoisted_37 = { class: "list" };
+  const _hoisted_38 = ["onUpdate:modelValue"];
+  const _hoisted_39 = ["onClick", "disabled"];
+  const _hoisted_40 = ["disabled"];
+  const _hoisted_41 = {
+    key: 4,
+    class: "details",
+    open: ""
+  };
+  const _hoisted_42 = { class: "form" };
+  const _hoisted_43 = { class: "list" };
+  const _hoisted_44 = ["onUpdate:modelValue"];
+  const _hoisted_45 = ["onClick", "disabled"];
+  const _hoisted_46 = ["disabled"];
+  const _hoisted_47 = {
+    key: 5,
+    class: "details",
+    open: ""
+  };
+  const _hoisted_48 = { class: "form" };
+  const _hoisted_49 = { class: "list" };
+  const _hoisted_50 = ["onUpdate:modelValue"];
+  const _hoisted_51 = ["onClick", "disabled"];
+  const _hoisted_52 = ["disabled"];
+  const _hoisted_53 = {
+    key: 6,
+    class: "details"
+  };
+  const _sfc_main = /* @__PURE__ */ defineComponent({
+    __name: "CommandExecSandbox",
+    setup(__props) {
+      function getApi() {
+        const api = window.ST_API;
+        if (!api)
+          throw new Error("ST_API 未就绪");
+        if (!api.command)
+          throw new Error("command API 未注册（请确认已更新并启用 st-api-wrapper）");
+        return api;
+      }
+      function cloneConfig(c) {
+        return {
+          ...c,
+          commandListMode: c.commandListMode === "denylist" ? "denylist" : "allowlist",
+          allowedCommands: [...c.allowedCommands ?? []],
+          blockedCommands: [...c.blockedCommands ?? []],
+          allowedCwdRoots: [...c.allowedCwdRoots ?? []],
+          allowedEnvKeys: [...c.allowedEnvKeys ?? []]
+        };
+      }
+      const loading = /* @__PURE__ */ ref(false);
+      const saving = /* @__PURE__ */ ref(false);
+      const togglingEnabled = /* @__PURE__ */ ref(false);
+      const error = /* @__PURE__ */ ref(null);
+      const filePath = /* @__PURE__ */ ref("");
+      const fileExists = /* @__PURE__ */ ref(null);
+      const fileError = /* @__PURE__ */ ref(null);
+      const defaults2 = /* @__PURE__ */ ref(null);
+      const original = /* @__PURE__ */ ref(null);
+      const draft = /* @__PURE__ */ ref(null);
+      async function reload() {
+        var _a, _b, _c;
+        loading.value = true;
+        error.value = null;
+        fileError.value = null;
+        try {
+          const api = getApi();
+          await api.command.probe().catch(() => {
+          });
+          const r = await api.command.getSandbox();
+          filePath.value = ((_a = r.file) == null ? void 0 : _a.path) ?? "";
+          fileExists.value = typeof ((_b = r.file) == null ? void 0 : _b.exists) === "boolean" ? r.file.exists : null;
+          fileError.value = ((_c = r.file) == null ? void 0 : _c.error) ?? null;
+          defaults2.value = cloneConfig(r.defaults);
+          original.value = cloneConfig(r.config);
+          draft.value = cloneConfig(r.config);
+        } catch (e) {
+          error.value = (e == null ? void 0 : e.message) ?? String(e);
+        } finally {
+          loading.value = false;
+        }
+      }
+      function addOne(list2) {
+        list2.push("");
+      }
+      function removeAt(list2, idx) {
+        list2.splice(idx, 1);
+      }
+      function applyDefaults() {
+        if (!defaults2.value)
+          return;
+        draft.value = cloneConfig(defaults2.value);
+        toastr.info("已重置为默认（未保存）");
+      }
+      function onEnabledToggle(e) {
+        const input = e.target;
+        if (!input || !draft.value)
+          return;
+        const nextEnabled = !!input.checked;
+        if (!nextEnabled) {
+          const ok = confirm("关闭后端命令权限配置后，将恢复后端命令执行的全权限（高风险）。确认关闭？");
+          if (!ok) {
+            input.checked = draft.value.enabled;
+            return;
+          }
+        }
+        void setPermissionEnabled(nextEnabled);
+      }
+      async function setPermissionEnabled(nextEnabled) {
+        var _a, _b, _c;
+        if (!draft.value)
+          return;
+        togglingEnabled.value = true;
+        error.value = null;
+        try {
+          const api = getApi();
+          const r = await api.command.setSandbox({ enabled: nextEnabled });
+          filePath.value = ((_a = r.file) == null ? void 0 : _a.path) ?? filePath.value;
+          fileExists.value = typeof ((_b = r.file) == null ? void 0 : _b.exists) === "boolean" ? r.file.exists : fileExists.value;
+          fileError.value = ((_c = r.file) == null ? void 0 : _c.error) ?? null;
+          defaults2.value = cloneConfig(r.defaults);
+          original.value = cloneConfig(r.config);
+          if (draft.value)
+            draft.value.enabled = r.config.enabled;
+          toastr.success(nextEnabled ? "已启用后端命令权限配置" : "已关闭后端命令权限配置（已恢复全权限）");
+        } catch (e) {
+          error.value = (e == null ? void 0 : e.message) ?? String(e);
+        } finally {
+          togglingEnabled.value = false;
+        }
+      }
+      async function save() {
+        var _a, _b, _c;
+        if (!draft.value)
+          return;
+        saving.value = true;
+        error.value = null;
+        try {
+          const next = cloneConfig(draft.value);
+          const prev = original.value;
+          const dangerous = [];
+          const prevEnabled = (prev == null ? void 0 : prev.enabled) ?? true;
+          const prevAllowScript = (prev == null ? void 0 : prev.allowScript) ?? false;
+          const prevAllowTerminalOverrides = (prev == null ? void 0 : prev.allowTerminalOverrides) ?? false;
+          const prevAllowEnvOverride = (prev == null ? void 0 : prev.allowEnvOverride) ?? false;
+          const prevDenyShellCommands = (prev == null ? void 0 : prev.denyShellCommands) ?? true;
+          const prevCommandListMode = (prev == null ? void 0 : prev.commandListMode) === "denylist" ? "denylist" : "allowlist";
+          if (prevEnabled && !next.enabled)
+            dangerous.push("关闭后端命令权限配置（enabled=false，恢复全权限）");
+          if (!prevAllowScript && next.allowScript)
+            dangerous.push("开启 script 模式（allowScript=true）");
+          if (!prevAllowTerminalOverrides && next.allowTerminalOverrides)
+            dangerous.push("允许 terminal 覆盖（allowTerminalOverrides=true）");
+          if (!prevAllowEnvOverride && next.allowEnvOverride)
+            dangerous.push("允许 env 覆盖（allowEnvOverride=true）");
+          if (prevDenyShellCommands && !next.denyShellCommands)
+            dangerous.push("允许 direct 运行 shell（denyShellCommands=false）");
+          if (prevCommandListMode !== "denylist" && next.commandListMode === "denylist") {
+            dangerous.push("切换到黑名单模式（denylist：默认放行除黑名单外的命令）");
+          }
+          if (next.commandListMode === "denylist") {
+            const effectiveBlocked = (next.blockedCommands ?? []).map((s) => (s ?? "").trim()).filter(Boolean);
+            if (effectiveBlocked.length === 0) {
+              dangerous.push("黑名单为空（denylist + 空列表 将放行几乎所有 direct 命令）");
+            }
+          }
+          if (dangerous.length > 0) {
+            const ok = confirm(
+              `你正在开启高风险权限：
+- ${dangerous.join("\n- ")}
+
+这会显著提升后端执行风险。确认继续保存？`
+            );
+            if (!ok)
+              return;
+          }
+          const api = getApi();
+          const r = await api.command.setSandbox(next);
+          filePath.value = ((_a = r.file) == null ? void 0 : _a.path) ?? filePath.value;
+          fileExists.value = typeof ((_b = r.file) == null ? void 0 : _b.exists) === "boolean" ? r.file.exists : fileExists.value;
+          fileError.value = ((_c = r.file) == null ? void 0 : _c.error) ?? null;
+          defaults2.value = cloneConfig(r.defaults);
+          original.value = cloneConfig(r.config);
+          draft.value = cloneConfig(r.config);
+          toastr.success("权限配置已保存");
+        } catch (e) {
+          error.value = (e == null ? void 0 : e.message) ?? String(e);
+        } finally {
+          saving.value = false;
+        }
+      }
+      onMounted(() => {
+        reload();
+      });
+      return (_ctx, _cache) => {
+        return openBlock(), createElementBlock("div", _hoisted_1, [
+          createBaseVNode("div", _hoisted_2, [
+            createBaseVNode("button", {
+              class: "menu_button",
+              type: "button",
+              onClick: reload,
+              disabled: loading.value || saving.value || togglingEnabled.value
+            }, " 刷新 ", 8, _hoisted_3),
+            createBaseVNode("button", {
+              class: "menu_button",
+              type: "button",
+              onClick: applyDefaults,
+              disabled: loading.value || saving.value || togglingEnabled.value || !defaults2.value
+            }, " 重置为默认 ", 8, _hoisted_4),
+            createBaseVNode("button", {
+              class: "menu_button",
+              type: "button",
+              onClick: save,
+              disabled: loading.value || saving.value || togglingEnabled.value || !draft.value
+            }, " 保存 ", 8, _hoisted_5)
+          ]),
+          draft.value ? (openBlock(), createElementBlock("div", _hoisted_6, [
+            createBaseVNode("label", _hoisted_7, [
+              createBaseVNode("input", {
+                type: "checkbox",
+                checked: draft.value.enabled,
+                onChange: onEnabledToggle,
+                disabled: loading.value || saving.value || togglingEnabled.value
+              }, null, 40, _hoisted_8),
+              _cache[11] || (_cache[11] = createBaseVNode("span", null, [
+                createBaseVNode("b", null, "启用后端命令权限配置（总开关）")
+              ], -1))
+            ]),
+            _cache[12] || (_cache[12] = createBaseVNode("div", { class: "hint muted" }, " 开启：按下方规则限制命令执行；关闭：恢复全权限（高风险）。 ", -1))
+          ])) : createCommentVNode("", true),
+          createBaseVNode("div", _hoisted_9, [
+            filePath.value ? (openBlock(), createElementBlock("div", _hoisted_10, [
+              _cache[13] || (_cache[13] = createTextVNode("配置文件：", -1)),
+              createBaseVNode("code", null, toDisplayString(filePath.value), 1),
+              _cache[14] || (_cache[14] = createTextVNode()),
+              fileExists.value === false ? (openBlock(), createElementBlock("span", _hoisted_11, "（未创建）")) : createCommentVNode("", true)
+            ])) : createCommentVNode("", true),
+            fileError.value ? (openBlock(), createElementBlock("div", _hoisted_12, "读取配置失败：" + toDisplayString(fileError.value) + "（已使用默认值）", 1)) : createCommentVNode("", true),
+            loading.value ? (openBlock(), createElementBlock("div", _hoisted_13, "正在加载...")) : createCommentVNode("", true),
+            togglingEnabled.value ? (openBlock(), createElementBlock("div", _hoisted_14, "正在应用总开关...")) : createCommentVNode("", true),
+            saving.value ? (openBlock(), createElementBlock("div", _hoisted_15, "正在保存...")) : createCommentVNode("", true),
+            error.value ? (openBlock(), createElementBlock("div", _hoisted_16, toDisplayString(error.value), 1)) : createCommentVNode("", true)
+          ]),
+          draft.value ? (openBlock(), createElementBlock("details", _hoisted_17, [
+            _cache[33] || (_cache[33] = createBaseVNode("summary", null, "权限规则与开关", -1)),
+            createBaseVNode("div", _hoisted_18, [
+              createBaseVNode("div", _hoisted_19, [
+                createBaseVNode("label", _hoisted_20, [
+                  withDirectives(createBaseVNode("input", {
+                    type: "checkbox",
+                    "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => draft.value.allowDirect = $event)
+                  }, null, 512), [
+                    [vModelCheckbox, draft.value.allowDirect]
+                  ]),
+                  _cache[15] || (_cache[15] = createBaseVNode("span", null, "允许 direct（allowDirect）", -1))
+                ]),
+                createBaseVNode("label", _hoisted_21, [
+                  withDirectives(createBaseVNode("input", {
+                    type: "checkbox",
+                    "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => draft.value.allowScript = $event)
+                  }, null, 512), [
+                    [vModelCheckbox, draft.value.allowScript]
+                  ]),
+                  _cache[16] || (_cache[16] = createBaseVNode("span", { class: "danger-text" }, "允许 script（allowScript，高风险）", -1))
+                ]),
+                createBaseVNode("label", _hoisted_22, [
+                  withDirectives(createBaseVNode("input", {
+                    type: "checkbox",
+                    "onUpdate:modelValue": _cache[2] || (_cache[2] = ($event) => draft.value.denyShellCommands = $event)
+                  }, null, 512), [
+                    [vModelCheckbox, draft.value.denyShellCommands]
+                  ]),
+                  _cache[17] || (_cache[17] = createBaseVNode("span", null, "禁止 shell 命令（denyShellCommands）", -1))
+                ])
+              ]),
+              createBaseVNode("div", _hoisted_23, [
+                createBaseVNode("label", _hoisted_24, [
+                  withDirectives(createBaseVNode("input", {
+                    type: "checkbox",
+                    "onUpdate:modelValue": _cache[3] || (_cache[3] = ($event) => draft.value.allowTerminalOverrides = $event)
+                  }, null, 512), [
+                    [vModelCheckbox, draft.value.allowTerminalOverrides]
+                  ]),
+                  _cache[18] || (_cache[18] = createBaseVNode("span", { class: "danger-text" }, "允许 terminal 覆盖（allowTerminalOverrides，高风险）", -1))
+                ]),
+                createBaseVNode("label", _hoisted_25, [
+                  withDirectives(createBaseVNode("input", {
+                    type: "checkbox",
+                    "onUpdate:modelValue": _cache[4] || (_cache[4] = ($event) => draft.value.allowEnvOverride = $event)
+                  }, null, 512), [
+                    [vModelCheckbox, draft.value.allowEnvOverride]
+                  ]),
+                  _cache[19] || (_cache[19] = createBaseVNode("span", { class: "danger-text" }, "允许 env 覆盖（allowEnvOverride，高风险）", -1))
+                ])
+              ]),
+              createBaseVNode("label", _hoisted_26, [
+                _cache[21] || (_cache[21] = createBaseVNode("div", { class: "label" }, "direct 命令过滤模式（commandListMode）", -1)),
+                withDirectives(createBaseVNode("select", {
+                  class: "text",
+                  "onUpdate:modelValue": _cache[5] || (_cache[5] = ($event) => draft.value.commandListMode = $event)
+                }, [..._cache[20] || (_cache[20] = [
+                  createBaseVNode("option", { value: "allowlist" }, "白名单 allowlist（更安全：allowedCommands 为空=全部拒绝）", -1),
+                  createBaseVNode("option", { value: "denylist" }, "黑名单 denylist（更危险：默认放行，blockedCommands 中的命令会被拒绝）", -1)
+                ])], 512), [
+                  [vModelSelect, draft.value.commandListMode]
+                ])
+              ]),
+              createBaseVNode("label", _hoisted_27, [
+                _cache[22] || (_cache[22] = createBaseVNode("div", { class: "label" }, "maxTimeoutMs（启用权限配置时作为默认超时 + 上限）", -1)),
+                withDirectives(createBaseVNode("input", {
+                  class: "text",
+                  type: "number",
+                  min: "0",
+                  step: "1000",
+                  "onUpdate:modelValue": _cache[6] || (_cache[6] = ($event) => draft.value.maxTimeoutMs = $event)
+                }, null, 512), [
+                  [
+                    vModelText,
+                    draft.value.maxTimeoutMs,
+                    void 0,
+                    { number: true }
+                  ]
+                ])
+              ]),
+              createBaseVNode("div", _hoisted_28, [
+                draft.value.commandListMode === "denylist" ? (openBlock(), createElementBlock(Fragment, { key: 0 }, [
+                  _cache[23] || (_cache[23] = createTextVNode(" 提示：黑名单模式下，除了匹配 ", -1)),
+                  _cache[24] || (_cache[24] = createBaseVNode("code", null, "blockedCommands", -1)),
+                  _cache[25] || (_cache[25] = createTextVNode(" 的命令外，其余命令会被放行（仍受 ", -1)),
+                  _cache[26] || (_cache[26] = createBaseVNode("code", null, "denyShellCommands", -1)),
+                  _cache[27] || (_cache[27] = createTextVNode(" 与目录限制影响）。 ", -1))
+                ], 64)) : (openBlock(), createElementBlock(Fragment, { key: 1 }, [
+                  _cache[28] || (_cache[28] = createTextVNode(" 提示：白名单模式下 ", -1)),
+                  _cache[29] || (_cache[29] = createBaseVNode("code", null, "allowedCommands=[]", -1)),
+                  _cache[30] || (_cache[30] = createTextVNode(" 表示 deny-all，所以 ", -1)),
+                  _cache[31] || (_cache[31] = createBaseVNode("code", null, "run", -1)),
+                  _cache[32] || (_cache[32] = createTextVNode(" 会被 403 拒绝，直到你添加白名单。 ", -1))
+                ], 64))
+              ])
+            ])
+          ])) : createCommentVNode("", true),
+          draft.value && draft.value.commandListMode !== "denylist" ? (openBlock(), createElementBlock("details", _hoisted_29, [
+            _cache[35] || (_cache[35] = createBaseVNode("summary", null, "allowedCommands（白名单模式：direct 命令允许列表）", -1)),
+            createBaseVNode("div", _hoisted_30, [
+              _cache[34] || (_cache[34] = createBaseVNode("div", { class: "hint muted" }, [
+                createTextVNode(" 允许执行的 "),
+                createBaseVNode("b", null, "direct"),
+                createTextVNode(" 命令。可填命令名（如 "),
+                createBaseVNode("code", null, "python"),
+                createTextVNode("）或完整路径（如 "),
+                createBaseVNode("code", null, "C:\\\\Python\\\\python.exe"),
+                createTextVNode("）。留空=全部拒绝。 ")
+              ], -1)),
+              createBaseVNode("div", _hoisted_31, [
+                (openBlock(true), createElementBlock(Fragment, null, renderList(draft.value.allowedCommands, (c, idx) => {
+                  return openBlock(), createElementBlock("div", {
+                    class: "list-row",
+                    key: idx
+                  }, [
+                    withDirectives(createBaseVNode("input", {
+                      class: "text",
+                      "onUpdate:modelValue": ($event) => draft.value.allowedCommands[idx] = $event,
+                      placeholder: "python / C:\\\\Python\\\\python.exe"
+                    }, null, 8, _hoisted_32), [
+                      [vModelText, draft.value.allowedCommands[idx]]
+                    ]),
+                    createBaseVNode("button", {
+                      class: "menu_button danger",
+                      type: "button",
+                      onClick: ($event) => removeAt(draft.value.allowedCommands, idx),
+                      disabled: saving.value
+                    }, " 删除 ", 8, _hoisted_33)
+                  ]);
+                }), 128))
+              ]),
+              createBaseVNode("button", {
+                class: "menu_button",
+                type: "button",
+                onClick: _cache[7] || (_cache[7] = ($event) => addOne(draft.value.allowedCommands)),
+                disabled: saving.value
+              }, " 添加命令 ", 8, _hoisted_34)
+            ])
+          ])) : createCommentVNode("", true),
+          draft.value && draft.value.commandListMode === "denylist" ? (openBlock(), createElementBlock("details", _hoisted_35, [
+            _cache[37] || (_cache[37] = createBaseVNode("summary", null, "blockedCommands（黑名单模式：direct 命令拒绝列表）", -1)),
+            createBaseVNode("div", _hoisted_36, [
+              _cache[36] || (_cache[36] = createBaseVNode("div", { class: "hint muted" }, [
+                createTextVNode(" 匹配到该列表的 "),
+                createBaseVNode("b", null, "direct"),
+                createTextVNode(" 命令会被拒绝（403）。默认会预置一些高危命令；你可以按需删改。 ")
+              ], -1)),
+              createBaseVNode("div", _hoisted_37, [
+                (openBlock(true), createElementBlock(Fragment, null, renderList(draft.value.blockedCommands, (c, idx) => {
+                  return openBlock(), createElementBlock("div", {
+                    class: "list-row",
+                    key: idx
+                  }, [
+                    withDirectives(createBaseVNode("input", {
+                      class: "text",
+                      "onUpdate:modelValue": ($event) => draft.value.blockedCommands[idx] = $event,
+                      placeholder: "cmd / powershell / rm / ..."
+                    }, null, 8, _hoisted_38), [
+                      [vModelText, draft.value.blockedCommands[idx]]
+                    ]),
+                    createBaseVNode("button", {
+                      class: "menu_button danger",
+                      type: "button",
+                      onClick: ($event) => removeAt(draft.value.blockedCommands, idx),
+                      disabled: saving.value
+                    }, " 删除 ", 8, _hoisted_39)
+                  ]);
+                }), 128))
+              ]),
+              createBaseVNode("button", {
+                class: "menu_button",
+                type: "button",
+                onClick: _cache[8] || (_cache[8] = ($event) => addOne(draft.value.blockedCommands)),
+                disabled: saving.value
+              }, " 添加命令 ", 8, _hoisted_40)
+            ])
+          ])) : createCommentVNode("", true),
+          draft.value ? (openBlock(), createElementBlock("details", _hoisted_41, [
+            _cache[39] || (_cache[39] = createBaseVNode("summary", null, "allowedCwdRoots（允许的工作目录根路径）", -1)),
+            createBaseVNode("div", _hoisted_42, [
+              _cache[38] || (_cache[38] = createBaseVNode("div", { class: "hint muted" }, [
+                createBaseVNode("code", null, "cwd"),
+                createTextVNode(" 必须位于任一 root 内（否则 403）。空数组表示不限制（不推荐）。 ")
+              ], -1)),
+              createBaseVNode("div", _hoisted_43, [
+                (openBlock(true), createElementBlock(Fragment, null, renderList(draft.value.allowedCwdRoots, (p2, idx) => {
+                  return openBlock(), createElementBlock("div", {
+                    class: "list-row",
+                    key: idx
+                  }, [
+                    withDirectives(createBaseVNode("input", {
+                      class: "text",
+                      "onUpdate:modelValue": ($event) => draft.value.allowedCwdRoots[idx] = $event,
+                      placeholder: "F:\\\\111\\\\project 或 /home/user/project"
+                    }, null, 8, _hoisted_44), [
+                      [vModelText, draft.value.allowedCwdRoots[idx]]
+                    ]),
+                    createBaseVNode("button", {
+                      class: "menu_button danger",
+                      type: "button",
+                      onClick: ($event) => removeAt(draft.value.allowedCwdRoots, idx),
+                      disabled: saving.value
+                    }, " 删除 ", 8, _hoisted_45)
+                  ]);
+                }), 128))
+              ]),
+              createBaseVNode("button", {
+                class: "menu_button",
+                type: "button",
+                onClick: _cache[9] || (_cache[9] = ($event) => addOne(draft.value.allowedCwdRoots)),
+                disabled: saving.value
+              }, " 添加目录 ", 8, _hoisted_46)
+            ])
+          ])) : createCommentVNode("", true),
+          draft.value ? (openBlock(), createElementBlock("details", _hoisted_47, [
+            _cache[41] || (_cache[41] = createBaseVNode("summary", null, "allowedEnvKeys（允许覆盖的 env key，可选）", -1)),
+            createBaseVNode("div", _hoisted_48, [
+              _cache[40] || (_cache[40] = createBaseVNode("div", { class: "hint muted" }, [
+                createTextVNode(" 仅在 "),
+                createBaseVNode("code", null, "allowEnvOverride=true"),
+                createTextVNode(" 时生效。留空表示允许任意 key（依然高风险）。 ")
+              ], -1)),
+              createBaseVNode("div", _hoisted_49, [
+                (openBlock(true), createElementBlock(Fragment, null, renderList(draft.value.allowedEnvKeys, (k, idx) => {
+                  return openBlock(), createElementBlock("div", {
+                    class: "list-row",
+                    key: idx
+                  }, [
+                    withDirectives(createBaseVNode("input", {
+                      class: "text",
+                      "onUpdate:modelValue": ($event) => draft.value.allowedEnvKeys[idx] = $event,
+                      placeholder: "PATH / PYTHONPATH / ..."
+                    }, null, 8, _hoisted_50), [
+                      [vModelText, draft.value.allowedEnvKeys[idx]]
+                    ]),
+                    createBaseVNode("button", {
+                      class: "menu_button danger",
+                      type: "button",
+                      onClick: ($event) => removeAt(draft.value.allowedEnvKeys, idx),
+                      disabled: saving.value
+                    }, " 删除 ", 8, _hoisted_51)
+                  ]);
+                }), 128))
+              ]),
+              createBaseVNode("button", {
+                class: "menu_button",
+                type: "button",
+                onClick: _cache[10] || (_cache[10] = ($event) => addOne(draft.value.allowedEnvKeys)),
+                disabled: saving.value
+              }, " 添加 key ", 8, _hoisted_52)
+            ])
+          ])) : createCommentVNode("", true),
+          draft.value ? (openBlock(), createElementBlock("details", _hoisted_53, [..._cache[42] || (_cache[42] = [
+            createStaticVNode('<summary data-v-4f9dbfcf>风险说明（建议先读）</summary><ul class="tips" data-v-4f9dbfcf><li data-v-4f9dbfcf><b data-v-4f9dbfcf>allowScript</b>：允许执行任意 shell 脚本，风险很高。</li><li data-v-4f9dbfcf><b data-v-4f9dbfcf>commandListMode=denylist</b>：黑名单模式是“默认放行”，只拦截黑名单；比白名单更危险。</li><li data-v-4f9dbfcf><b data-v-4f9dbfcf>denyShellCommands=false</b>：允许 direct 运行 <code data-v-4f9dbfcf>cmd/powershell/bash</code> 等，基本等价于“可执行任意命令”。</li><li data-v-4f9dbfcf><b data-v-4f9dbfcf>enabled=false</b>：关闭命令权限配置，恢复全权限（最危险）。</li></ul>', 2)
+          ])])) : createCommentVNode("", true)
+        ]);
+      };
+    }
+  });
+  const CommandExecSandbox_vue_vue_type_style_index_0_scoped_4f9dbfcf_lang = "";
+  const CommandExecSandbox = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-4f9dbfcf"]]);
   class ApiRegistry {
     constructor() {
       __publicField(this, "endpoints", /* @__PURE__ */ new Map());
@@ -12123,11 +12701,19 @@ var __publicField = (obj, key, value) => {
       throw new Error("command.run: either script or command is required");
     return await postJson$1("/api/plugins/command-exec/run", input);
   }
+  async function getSandbox() {
+    return await postJson$1("/api/plugins/command-exec/sandbox/get", {});
+  }
+  async function setSandbox(input) {
+    return await postJson$1("/api/plugins/command-exec/sandbox/set", { config: input ?? {} });
+  }
   const endpoints$1 = [
     { name: "probe", handler: probe },
     { name: "env", handler: env },
     { name: "which", handler: which },
-    { name: "run", handler: run }
+    { name: "run", handler: run },
+    { name: "getSandbox", handler: getSandbox },
+    { name: "setSandbox", handler: setSandbox }
   ];
   const commandModuleDefinition = {
     namespace: "command",
@@ -12408,7 +12994,7 @@ var __publicField = (obj, key, value) => {
           }
         }
       }));
-      const isServerPluginManagerAvailable = await (async () => {
+      const probeBackend = async (url) => {
         var _a2, _b2;
         try {
           const liveCtx = (_b2 = (_a2 = window.SillyTavern) == null ? void 0 : _a2.getContext) == null ? void 0 : _b2.call(_a2);
@@ -12416,7 +13002,7 @@ var __publicField = (obj, key, value) => {
             ...(liveCtx == null ? void 0 : liveCtx.getRequestHeaders) ? liveCtx.getRequestHeaders() : {},
             "Content-Type": "application/json"
           };
-          const resp = await fetch("/api/plugins/server-plugin-manager/probe", {
+          const resp = await fetch(url, {
             method: "POST",
             headers,
             body: "{}"
@@ -12425,28 +13011,51 @@ var __publicField = (obj, key, value) => {
         } catch {
           return false;
         }
-      })();
+      };
+      const isServerPluginManagerAvailable = await probeBackend("/api/plugins/server-plugin-manager/probe");
       if (!isServerPluginManagerAvailable) {
         console.warn("[ST API] Server Plugin Manager backend not available. Panel registration skipped.");
-        return;
-      }
-      await safeRegister("Server Plugin Manager Panel", () => window.ST_API.ui.registerSettingsPanel({
-        id: "st-api-wrapper.server_plugin_manager",
-        title: "后端插件管理",
-        target: "extensions_settings",
-        expanded: false,
-        order: 1,
-        content: {
-          kind: "render",
-          render: (container) => {
-            const mountPoint = document.createElement("div");
-            container.appendChild(mountPoint);
-            const app = createApp(ServerPluginManager);
-            app.mount(mountPoint);
-            return () => app.unmount();
+      } else {
+        await safeRegister("Server Plugin Manager Panel", () => window.ST_API.ui.registerSettingsPanel({
+          id: "st-api-wrapper.server_plugin_manager",
+          title: "后端插件管理",
+          target: "extensions_settings",
+          expanded: false,
+          order: 1,
+          content: {
+            kind: "render",
+            render: (container) => {
+              const mountPoint = document.createElement("div");
+              container.appendChild(mountPoint);
+              const app = createApp(ServerPluginManager);
+              app.mount(mountPoint);
+              return () => app.unmount();
+            }
           }
-        }
-      }));
+        }));
+      }
+      const isCommandExecAvailable = await probeBackend("/api/plugins/command-exec/sandbox/get");
+      if (!isCommandExecAvailable) {
+        console.warn("[ST API] Command Exec backend not available. Sandbox panel registration skipped.");
+      } else {
+        await safeRegister("Command Exec Sandbox Panel", () => window.ST_API.ui.registerSettingsPanel({
+          id: "st-api-wrapper.command_exec_sandbox",
+          title: "后端命令权限配置",
+          target: "extensions_settings",
+          expanded: false,
+          order: 2,
+          content: {
+            kind: "render",
+            render: (container) => {
+              const mountPoint = document.createElement("div");
+              container.appendChild(mountPoint);
+              const app = createApp(CommandExecSandbox);
+              app.mount(mountPoint);
+              return () => app.unmount();
+            }
+          }
+        }));
+      }
     };
     eventSource.on(event_types.APP_READY, register);
     register();

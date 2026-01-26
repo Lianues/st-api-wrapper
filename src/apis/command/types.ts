@@ -154,3 +154,59 @@ export type CommandRunOutput =
       cwd: string | null;
     });
 
+export interface CommandSandboxConfig {
+  /** 是否启用权限限制。false 表示恢复“全权限”（高风险）。 */
+  enabled: boolean;
+
+  /** 是否允许 direct 模式 */
+  allowDirect: boolean;
+  /** 是否允许 script 模式（高风险） */
+  allowScript: boolean;
+
+  /** 是否允许 terminalCommand / terminalArgs 覆盖（高风险） */
+  allowTerminalOverrides: boolean;
+  /** 是否允许 env 覆盖（高风险） */
+  allowEnvOverride: boolean;
+
+  /** direct 模式下是否禁止 shell 类命令（cmd/powershell/bash 等） */
+  denyShellCommands: boolean;
+
+  /**
+   * direct 命令过滤模式：
+   * - `allowlist`：白名单（默认，allowedCommands 为空=全部拒绝）
+   * - `denylist`：黑名单（blockedCommands 中的命令会被拒绝，其余允许；更危险）
+   */
+  commandListMode: 'allowlist' | 'denylist';
+
+  /** direct 模式允许执行的命令白名单。默认空数组=deny-all。 */
+  allowedCommands: string[];
+  /** direct 模式命令黑名单（仅在 commandListMode='denylist' 时生效）。 */
+  blockedCommands: string[];
+  /** 允许的工作目录根路径列表（cwd 必须位于任一 root 内）。空数组表示不限制。 */
+  allowedCwdRoots: string[];
+
+  /** 最大超时（ms）。当启用权限限制时，会作为“默认超时 + 上限”。 */
+  maxTimeoutMs: number;
+
+  /**
+   * 允许覆盖的 env key 白名单。
+   * - 仅在 allowEnvOverride=true 时生效
+   * - 为空表示允许任意 key
+   */
+  allowedEnvKeys: string[];
+}
+
+export interface CommandSandboxGetOutput {
+  ok: boolean;
+  config: CommandSandboxConfig;
+  defaults: CommandSandboxConfig;
+  file: {
+    path: string;
+    exists: boolean;
+    error?: string;
+  };
+}
+
+export type CommandSandboxSetInput = Partial<CommandSandboxConfig>;
+
+

@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import ServerPluginManager from './ServerPluginManager.vue';
+import CommandExecSandbox from './CommandExecSandbox.vue';
 import { ApiRegistry } from './core/registry';
 import { registerAllApis } from './apis';
 
@@ -55,15 +56,14 @@ async function initSelfPanel() {
       },
     }));
 
-    // 2. 根据后端可用性决定是否注册“后端插件管理”面板
-    const isServerPluginManagerAvailable = await (async () => {
+    const probeBackend = async (url: string) => {
       try {
         const liveCtx = window.SillyTavern?.getContext?.();
         const headers: Record<string, string> = {
           ...(liveCtx?.getRequestHeaders ? liveCtx.getRequestHeaders() : {}),
           'Content-Type': 'application/json',
         };
-        const resp = await fetch('/api/plugins/server-plugin-manager/probe', {
+        const resp = await fetch(url, {
           method: 'POST',
           headers,
           body: '{}',
@@ -72,30 +72,56 @@ async function initSelfPanel() {
       } catch {
         return false;
       }
-    })();
+    };
 
+    // 2. 根据后端可用性决定是否注册“后端插件管理”面板
+    const isServerPluginManagerAvailable = await probeBackend('/api/plugins/server-plugin-manager/probe');
     if (!isServerPluginManagerAvailable) {
       console.warn('[ST API] Server Plugin Manager backend not available. Panel registration skipped.');
-      return;
+    } else {
+      await safeRegister('Server Plugin Manager Panel', () => window.ST_API.ui.registerSettingsPanel({
+        id: 'st-api-wrapper.server_plugin_manager',
+        title: '后端插件管理',
+        target: 'extensions_settings',
+        expanded: false,
+        order: 1,
+        content: {
+          kind: 'render',
+          render: (container: HTMLElement) => {
+            const mountPoint = document.createElement('div');
+            container.appendChild(mountPoint);
+            const app = createApp(ServerPluginManager);
+            app.mount(mountPoint);
+            return () => app.unmount();
+          },
+        },
+      }));
     }
 
-    await safeRegister('Server Plugin Manager Panel', () => window.ST_API.ui.registerSettingsPanel({
-      id: 'st-api-wrapper.server_plugin_manager',
-      title: '后端插件管理',
-      target: 'extensions_settings',
-      expanded: false,
-      order: 1,
-      content: {
-        kind: 'render',
-        render: (container: HTMLElement) => {
-          const mountPoint = document.createElement('div');
-          container.appendChild(mountPoint);
-          const app = createApp(ServerPluginManager);
-          app.mount(mountPoint);
-          return () => app.unmount();
+    // 3. 根据后端可用性决定是否注册“后端命令权限配置”面板
+    // 用 /sandbox/get 探测，以避免后端版本过旧导致面板无法工作
+    const isCommandExecAvailable = await probeBackend('/api/plugins/command-exec/sandbox/get');
+    if (!isCommandExecAvailable) {
+      console.warn('[ST API] Command Exec backend not available. Sandbox panel registration skipped.');
+    } else {
+      await safeRegister('Command Exec Sandbox Panel', () => window.ST_API.ui.registerSettingsPanel({
+        id: 'st-api-wrapper.command_exec_sandbox',
+        title: '后端命令权限配置',
+        target: 'extensions_settings',
+        expanded: false,
+        order: 2,
+        content: {
+          kind: 'render',
+          render: (container: HTMLElement) => {
+            const mountPoint = document.createElement('div');
+            container.appendChild(mountPoint);
+            const app = createApp(CommandExecSandbox);
+            app.mount(mountPoint);
+            return () => app.unmount();
+          },
         },
-      },
-    }));
+      }));
+    }
   };
 
   // 监听准备就绪事件

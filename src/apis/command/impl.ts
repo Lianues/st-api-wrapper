@@ -5,6 +5,8 @@ import type {
   CommandProbeOutput,
   CommandRunInput,
   CommandRunOutput,
+  CommandSandboxGetOutput,
+  CommandSandboxSetInput,
   CommandWhichInput,
   CommandWhichOutput,
 } from './types';
@@ -64,5 +66,19 @@ export async function run(input: CommandRunInput): Promise<CommandRunOutput> {
   const hasCommand = typeof input?.command === 'string' && input.command.trim() !== '';
   if (!hasScript && !hasCommand) throw new Error('command.run: either script or command is required');
   return await postJson<CommandRunOutput>('/api/plugins/command-exec/run', input);
+}
+
+/**
+ * 获取 command-exec 的权限配置。
+ */
+export async function getSandbox(): Promise<CommandSandboxGetOutput> {
+  return await postJson<CommandSandboxGetOutput>('/api/plugins/command-exec/sandbox/get', {});
+}
+
+/**
+ * 更新 command-exec 的权限配置（部分字段 patch）。
+ */
+export async function setSandbox(input: CommandSandboxSetInput): Promise<CommandSandboxGetOutput> {
+  return await postJson<CommandSandboxGetOutput>('/api/plugins/command-exec/sandbox/set', { config: input ?? {} });
 }
 

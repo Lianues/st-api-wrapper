@@ -36,6 +36,8 @@
 - `POST /env`：读取后端环境变量（默认子集，可选全量或指定 keys）  
 - `POST /which`：查找某个命令位置（Windows 用 `where`，类 Unix 用 `which -a`）  
 - `POST /run`：执行命令（两种模式：direct 或 script）  
+- `POST /sandbox/get`：获取权限配置（默认更安全）  
+- `POST /sandbox/set`：更新权限配置（写入 `sandbox.config.json`）  
 
 ### /run：两种模式
 
@@ -76,5 +78,19 @@
 - Windows：默认 `powershell`
 - Linux/macOS：优先使用 `SHELL`，否则默认 `bash`
 
-> 注意：该插件默认不做安全限制（按你的当前需求）。用于生产环境前务必加白名单/鉴权/目录限制等。
+### 后端命令权限配置（默认更安全）
+
+该插件提供一层 **命令权限配置**（白名单/目录限制/能力开关），用于降低误操作风险：
+
+- 默认启用：`enabled=true`
+- 默认仅 direct：`allowScript=false`
+- 默认 deny-all：`allowedCommands=[]`（不配置白名单时 `run` 会 403）
+- 默认目录限制：`allowedCwdRoots=[process.cwd()]`
+- 支持命令过滤模式：`commandListMode=allowlist|denylist`（黑名单模式更危险，默认会预置一批高危命令到 `blockedCommands`）
+
+配置文件位置：
+
+- `SillyTavern/plugins/command-exec/sandbox.config.json`
+
+> 注意：这不是 OS 级隔离；如果你允许了危险命令/脚本，仍可能造成破坏。用于生产环境前务必做好鉴权/隔离/权限控制等。
 

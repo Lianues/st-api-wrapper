@@ -8,7 +8,7 @@
 - **script 模式**：传 `script`，由后端按 `terminal` 选择终端执行（Windows 默认 PowerShell；Linux/macOS 默认 `SHELL`/`bash`）
 
 > 该 API 依赖后端存在 `/api/plugins/command-exec/run`。若未安装 server plugin，会请求失败（通常 404）。  
-> 当前封装不做安全限制（按“先不考虑风险”的目标），请自行控制命令来源与参数来源。
+> 目前后端默认启用 **命令权限配置**（默认更安全）。如果你没配置白名单/目录限制（例如 `allowedCommands` / `allowedCwdRoots`），`run` 可能会被 **403** 拒绝。权限配置见：`docs/command/sandbox.md`。
 
 ## 输入
 
