@@ -33,6 +33,26 @@ function getSTContext() {
 }
 
 /**
+ * 获取当前选中的角色与其 ID。
+ *
+ * 备注：SillyTavern 的 characterId（this_chid）在很多版本里是“数字字符串”（例如 `"2"`）。
+ * 为了兼容，这里统一返回 string 形式的 chid，并尽量从 characters 中取到角色对象。
+ */
+function getCurrentCharacter(ctx: any): { chid?: string; char?: any } {
+  const raw = ctx?.characterId;
+  if (raw === undefined || raw === null) return {};
+
+  const chid = String(raw);
+  const chidNum = Number(chid);
+
+  const char =
+    (ctx?.characters && (ctx.characters[chid] ?? (Number.isNaN(chidNum) ? undefined : ctx.characters[chidNum])))
+    || undefined;
+
+  return { chid, char };
+}
+
+/**
  * 触发酒馆设置面板和全局状态的刷新
  */
 async function triggerSettingsRefresh() {
@@ -302,42 +322,63 @@ export async function listWorldBooks(input: ListWorldBooksInput = {}): Promise<L
 
   // 1. 全局书
   if (!scope || scope === 'global') {
-    // 优先调用酒馆原生的刷新函数，确保内存中的 world_names 是最新的
-    if (ctx?.updateWorldInfoList) {
-      await ctx.updateWorldInfoList();
+    // 优先调用酒馆原生的刷新函数，确保酒馆内部 UI/缓存刷新
+    if (ctx?.updateWorldInfoList) await ctx.updateWorldInfoList();
+
+    // SillyTavern 并不会把 world_names 挂到 window / getContext()，
+    // 正确来源是后端 `/api/settings/get` 的 `world_names` 字段。
+    let worldNames: string[] = [];
+
+    try {
+      const resp = await fetch('/api/settings/get', {
+        method: 'POST',
+        headers: { ...(ctx?.getRequestHeaders?.() || {}), 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        if (Array.isArray(data?.world_names)) {
+          worldNames = data.world_names;
+        }
+      }
+    } catch {
+      // ignore and fallback to legacy sources
     }
 
-    // 尝试从酒馆暴露的全局变量或 context 中获取
-    // 在酒馆中，world_names 是一个存储所有全局世界书名称的数组
-    const worldNames = (window as any).world_names || ctx?.world_names || [];
-    
-    if (Array.isArray(worldNames)) {
-      worldNames.forEach((name: string) => {
-        // 避免重复（如果多次刷新或来源重叠）
-        if (!worldBooks.find(b => b.name === name && b.scope === 'global')) {
-          worldBooks.push({ name, scope: 'global' });
-        }
-      });
+    // 兼容旧版本/旧实现：如果 settings/get 拉取失败，尝试 legacy 全局变量
+    if (!worldNames.length) {
+      const legacyWorldNames = (window as any).world_names || ctx?.world_names || [];
+      if (Array.isArray(legacyWorldNames)) worldNames = legacyWorldNames;
     }
+
+    worldNames.forEach((name: string) => {
+      // 避免重复（如果多次刷新或来源重叠）
+      if (!worldBooks.find(b => b.name === name && b.scope === 'global')) {
+        worldBooks.push({ name, scope: 'global' });
+      }
+    });
   }
 
   // 2. 角色书
   if (!scope || scope === 'character') {
-    const characters = ctx?.characters || [];
-    const currentChid = ctx?.characterId;
-    if (typeof currentChid === 'number' && characters[currentChid]) {
-      const char = characters[currentChid];
-      if (char.data?.character_book) {
-        worldBooks.push({ name: char.name, scope: 'character', ownerId: String(currentChid) });
-      }
+    const { chid: currentChid, char } = getCurrentCharacter(ctx);
+    const boundWorldName = char?.data?.extensions?.world;
+
+    // SillyTavern 的“角色世界书”本质是：角色绑定到某个全局世界书名（extensions.world）
+    if (currentChid && typeof boundWorldName === 'string' && boundWorldName) {
+      worldBooks.push({ name: boundWorldName, scope: 'character', ownerId: currentChid });
     }
   }
 
   // 3. 聊天书
   if (!scope || scope === 'chat') {
     const chatMetadata = ctx?.chatMetadata;
-    if (chatMetadata?.world_info) {
-      worldBooks.push({ name: 'Current Chat', scope: 'chat', ownerId: ctx?.chatId });
+    const boundWorldName = (chatMetadata as any)?.world_info ?? (chatMetadata as any)?.['world_info'];
+
+    // SillyTavern 的“聊天世界书”本质是：聊天元数据绑定到某个全局世界书名（chat_metadata.world_info）
+    if (typeof boundWorldName === 'string' && boundWorldName) {
+      worldBooks.push({ name: boundWorldName, scope: 'chat', ownerId: ctx?.chatId });
     }
   }
 
@@ -384,26 +425,28 @@ export async function getWorldBook(input: GetWorldBookInput): Promise<GetWorldBo
     }
     
     if (scope === 'character') {
-      const char = ctx?.characters[ctx?.characterId];
-      // 匹配角色名或内置书名
-      const isMatch = char?.name === input.name || char?.data?.character_book?.name === input.name;
-      if (isMatch && char?.data?.character_book) {
-        return { 
-          worldBook: fromStBook(char.data.character_book, char.data.character_book.name || char.name), 
-          scope: 'character' 
-        };
+      const { char } = getCurrentCharacter(ctx);
+      const boundWorldName = char?.data?.extensions?.world;
+
+      // 兼容旧行为：以前 list(character) 返回的是角色名，这里允许用角色名作为别名
+      const isLegacyAlias = typeof char?.name === 'string' && input.name === char.name;
+
+      // SillyTavern：角色“世界书”= 角色绑定到某个全局世界书名（extensions.world）
+      if (typeof boundWorldName === 'string' && boundWorldName && (input.name === boundWorldName || isLegacyAlias)) {
+        const global = await getWorldBook({ name: boundWorldName, scope: 'global' });
+        return { worldBook: global.worldBook, scope: 'character' };
       }
     }
 
     if (scope === 'chat') {
-      if (input.name === 'Current Chat' || input.name === ctx?.chatId) {
-        const chatMetadata = ctx?.chatMetadata;
-        if (chatMetadata?.world_info) {
-          return {
-            worldBook: fromStBook(chatMetadata.world_info, 'Current Chat'),
-            scope: 'chat'
-          };
-        }
+      const chatMetadata = ctx?.chatMetadata as any;
+      const boundWorldName = chatMetadata?.world_info ?? chatMetadata?.['world_info'];
+      const isLegacyAlias = input.name === 'Current Chat' || input.name === ctx?.chatId;
+
+      // SillyTavern：聊天“世界书”= chat_metadata['world_info'] 绑定到某个全局世界书名
+      if (typeof boundWorldName === 'string' && boundWorldName && (input.name === boundWorldName || isLegacyAlias)) {
+        const global = await getWorldBook({ name: boundWorldName, scope: 'global' });
+        return { worldBook: global.worldBook, scope: 'chat' };
       }
     }
   }
@@ -417,6 +460,7 @@ export async function getWorldBook(input: GetWorldBookInput): Promise<GetWorldBo
 export async function updateWorldBook(input: UpdateWorldBookInput): Promise<UpdateWorldBookOutput> {
   const { worldBook, scope } = await getWorldBook({ name: input.name, scope: input.scope });
   const ctx = getSTContext();
+  const currentName = worldBook.name;
 
   // 1. 如果提供了新内容，先更新内容
   if (input.entries) {
@@ -425,30 +469,34 @@ export async function updateWorldBook(input: UpdateWorldBookInput): Promise<Upda
   }
 
   // 2. 如果提供了新名字，进行重命名
-  if (input.newName && input.newName !== input.name) {
-    if (scope === 'global') {
-      // 全局书重命名：保存新名 + 删除旧名
-      await saveWorldBookInternal({ name: input.newName, entries: worldBook.entries }, 'global');
-      await deleteWorldBook({ name: input.name, scope: 'global' });
-    } else if (scope === 'character') {
-      const char = ctx?.characters[ctx?.characterId];
-      if (char && char.data?.character_book) {
-        char.data.character_book.name = input.newName;
+  if (input.newName && input.newName !== currentName) {
+    // chat/character 只是“绑定全局世界书名”，真正的内容文件仍是全局 worldinfo 文件
+    // 因此重命名本质是：创建新全局文件 + 删除旧文件 + 更新绑定指向
+    await saveWorldBookInternal({ name: input.newName, entries: worldBook.entries }, 'global');
+    await deleteWorldBook({ name: currentName, scope: 'global' });
+
+    if (scope === 'character') {
+      const { char } = getCurrentCharacter(ctx);
+      if (char) {
+        char.data = char.data || {};
+        char.data.extensions = char.data.extensions || {};
+        char.data.extensions.world = input.newName;
         if (ctx.saveCharacterDebounced) await ctx.saveCharacterDebounced();
       }
     } else if (scope === 'chat') {
-      const chatMetadata = ctx?.chatMetadata;
-      if (chatMetadata?.world_info) {
-        chatMetadata.world_info.name = input.newName;
+      const chatMetadata = ctx?.chatMetadata as any;
+      if (chatMetadata) {
+        chatMetadata['world_info'] = input.newName;
         if (ctx.saveMetadataDebounced) ctx.saveMetadataDebounced();
       }
     }
+
     await triggerSettingsRefresh();
     return { ok: true, name: input.newName };
   }
 
   await triggerSettingsRefresh();
-  return { ok: true, name: input.name };
+  return { ok: true, name: currentName };
 }
 
 /**
@@ -477,18 +525,33 @@ export async function createWorldBook(input: CreateWorldBookInput): Promise<Crea
       return { name: input.name, ok: true };
     }
   } else if (scope === 'character') {
-    const char = ctx?.characters[ctx?.characterId];
-    if (char) {
+    // 角色作用域：创建/覆盖同名全局世界书 + 绑定到当前角色（extensions.world）
+    const resp = await fetch('/api/worldinfo/edit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...ctx?.getRequestHeaders?.() },
+      body: JSON.stringify({ name: input.name, data: { entries: stEntries } }),
+    });
+
+    const { char } = getCurrentCharacter(ctx);
+    if (resp.ok && char) {
       char.data = char.data || {};
-      char.data.character_book = { name: input.name, entries: stEntries };
+      char.data.extensions = char.data.extensions || {};
+      char.data.extensions.world = input.name;
       if (ctx.saveCharacterDebounced) await ctx.saveCharacterDebounced();
       await triggerSettingsRefresh();
       return { name: input.name, ok: true };
     }
   } else if (scope === 'chat') {
-    const chatMetadata = ctx?.chatMetadata;
-    if (chatMetadata) {
-      chatMetadata.world_info = { name: input.name, entries: stEntries };
+    // 聊天作用域：创建/覆盖同名全局世界书 + 绑定到当前聊天（chat_metadata['world_info']）
+    const resp = await fetch('/api/worldinfo/edit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...ctx?.getRequestHeaders?.() },
+      body: JSON.stringify({ name: input.name, data: { entries: stEntries } }),
+    });
+
+    const chatMetadata = ctx?.chatMetadata as any;
+    if (resp.ok && chatMetadata) {
+      chatMetadata['world_info'] = input.name;
       if (ctx.saveMetadataDebounced) ctx.saveMetadataDebounced();
       await triggerSettingsRefresh();
       return { name: input.name, ok: true };
@@ -504,6 +567,7 @@ export async function createWorldBook(input: CreateWorldBookInput): Promise<Crea
 export async function deleteWorldBook(input: DeleteWorldBookInput): Promise<DeleteWorldBookOutput> {
   const ctx = getSTContext();
   const scope = input.scope || 'global';
+  const deleteGlobalFile = input.deleteGlobalFile === true;
 
   if (scope === 'global') {
     const resp = await fetch('/api/worldinfo/delete', {
@@ -517,18 +581,64 @@ export async function deleteWorldBook(input: DeleteWorldBookInput): Promise<Dele
       return { ok: true };
     }
   } else if (scope === 'character') {
-    const char = ctx?.characters[ctx?.characterId];
-    if (char && char.data?.character_book) {
-      delete char.data.character_book;
+    const { char } = getCurrentCharacter(ctx);
+    const boundWorldName = char?.data?.extensions?.world;
+    const isLegacyAlias = typeof char?.name === 'string' && input.name === char.name;
+    const targetWorldName =
+      typeof boundWorldName === 'string' && boundWorldName && (input.name === boundWorldName || isLegacyAlias)
+        ? boundWorldName
+        : null;
+
+    // 角色作用域 delete：默认仅解绑；可选同时删除对应的全局世界书文件
+    if (char && targetWorldName) {
+      if (char.data?.extensions && Object.prototype.hasOwnProperty.call(char.data.extensions, 'world')) {
+        delete char.data.extensions.world;
+      }
       if (ctx.saveCharacterDebounced) await ctx.saveCharacterDebounced();
+
+      if (deleteGlobalFile) {
+        const resp = await fetch('/api/worldinfo/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...ctx?.getRequestHeaders?.() },
+          body: JSON.stringify({ name: targetWorldName }),
+        });
+        if (!resp.ok) {
+          await triggerSettingsRefresh();
+          return { ok: false };
+        }
+      }
+
       await triggerSettingsRefresh();
       return { ok: true };
     }
   } else if (scope === 'chat') {
-    const chatMetadata = ctx?.chatMetadata;
-    if (chatMetadata?.world_info) {
-      delete chatMetadata.world_info;
+    const chatMetadata = ctx?.chatMetadata as any;
+    const boundWorldName = chatMetadata?.world_info ?? chatMetadata?.['world_info'];
+    const isLegacyAlias = input.name === 'Current Chat' || input.name === ctx?.chatId;
+    const targetWorldName =
+      typeof boundWorldName === 'string' && boundWorldName && (input.name === boundWorldName || isLegacyAlias)
+        ? boundWorldName
+        : null;
+
+    // 聊天作用域 delete：默认仅解绑；可选同时删除对应的全局世界书文件
+    if (chatMetadata && targetWorldName) {
+      if (Object.prototype.hasOwnProperty.call(chatMetadata, 'world_info')) {
+        delete chatMetadata['world_info'];
+      }
       if (ctx.saveMetadataDebounced) ctx.saveMetadataDebounced();
+
+      if (deleteGlobalFile) {
+        const resp = await fetch('/api/worldinfo/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...ctx?.getRequestHeaders?.() },
+          body: JSON.stringify({ name: targetWorldName }),
+        });
+        if (!resp.ok) {
+          await triggerSettingsRefresh();
+          return { ok: false };
+        }
+      }
+
       await triggerSettingsRefresh();
       return { ok: true };
     }
@@ -640,7 +750,7 @@ export async function deleteWorldBookEntry(input: DeleteWorldBookEntryInput): Pr
 /**
  * 内部保存逻辑，处理不同作用域
  */
-async function saveWorldBookInternal(book: WorldBook, scope: WorldBookScope) {
+async function saveWorldBookInternal(book: WorldBook, _scope: WorldBookScope) {
   const ctx = getSTContext();
 
   // 转换为 ST 格式
@@ -649,44 +759,29 @@ async function saveWorldBookInternal(book: WorldBook, scope: WorldBookScope) {
     stEntries[e.index] = toStEntry(e);
   });
 
-  if (scope === 'global') {
-    // 优先使用酒馆原生的 saveWorldInfo 函数，它能处理缓存、事件通知和 UI 刷新
-    if (ctx?.saveWorldInfo) {
-      await ctx.saveWorldInfo(book.name, { entries: stEntries }, true);
-    } else {
-      // 备选方案：直接使用 fetch 访问后端接口
-      await fetch('/api/worldinfo/edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...ctx?.getRequestHeaders?.() },
-        body: JSON.stringify({ name: book.name, data: { entries: stEntries } }),
-      });
+  // SillyTavern：chat/character 的“世界书”本质是绑定到某个全局 worldinfo 文件名，
+  // 真正的条目内容始终存储在全局世界书文件中。因此这里统一按全局方式保存。
 
-      // 发送事件通知酒馆内部世界书已更新
-      if (ctx?.eventSource && ctx?.eventTypes) {
-        ctx.eventSource.emit(ctx.eventTypes.WORLDINFO_UPDATED, book.name, { entries: stEntries });
-      }
+  // 优先使用酒馆原生的 saveWorldInfo 函数，它能处理缓存、事件通知和 UI 刷新
+  if (ctx?.saveWorldInfo) {
+    await ctx.saveWorldInfo(book.name, { entries: stEntries }, true);
+  } else {
+    // 备选方案：直接使用 fetch 访问后端接口
+    await fetch('/api/worldinfo/edit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...ctx?.getRequestHeaders?.() },
+      body: JSON.stringify({ name: book.name, data: { entries: stEntries } }),
+    });
 
-      // 如果当前编辑器正开着这本书，尝试刷新 UI
-      if ((window as any).selected_world_info === book.name && (window as any).reloadEditor) {
-        (window as any).world_info = stEntries;
-        (window as any).reloadEditor();
-      }
+    // 发送事件通知酒馆内部世界书已更新
+    if (ctx?.eventSource && ctx?.eventTypes) {
+      ctx.eventSource.emit(ctx.eventTypes.WORLDINFO_UPDATED, book.name, { entries: stEntries });
     }
-  } else if (scope === 'character') {
-    const char = ctx?.characters[ctx?.characterId];
-    if (char && char.data?.character_book) {
-      char.data.character_book.entries = stEntries;
-      // 触发角色保存
-      if (ctx.saveCharacterDebounced) {
-        await ctx.saveCharacterDebounced();
-      }
-    }
-  } else if (scope === 'chat') {
-    const chatMetadata = ctx?.chatMetadata;
-    if (chatMetadata?.world_info) {
-      chatMetadata.world_info.entries = stEntries;
-      // 触发元数据保存
-      if (ctx.saveMetadataDebounced) ctx.saveMetadataDebounced();
+
+    // 如果当前编辑器正开着这本书，尝试刷新 UI
+    if ((window as any).selected_world_info === book.name && (window as any).reloadEditor) {
+      (window as any).world_info = stEntries;
+      (window as any).reloadEditor();
     }
   }
 

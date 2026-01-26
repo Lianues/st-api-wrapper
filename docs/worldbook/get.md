@@ -4,11 +4,15 @@
 
 获取指定名称和作用域的世界书完整内容（包含所有条目）。该接口使用了经过整理的友好结构，将常用字段提取到顶层，条目以数组形式返回。
 
+> 重要说明：在 SillyTavern 中，`chat/character` 作用域表示“当前聊天/当前角色绑定到某个全局世界书名”。  
+> 所以当你传 `scope: 'chat' | 'character'` 时，`name` 实际上应当是 **全局世界书名**（被绑定的那本）。  
+> 为兼容旧版本：`scope: 'chat'` 仍支持 `name: 'Current Chat'` 作为别名（表示“获取当前聊天绑定的世界书”）。
+
 ## 输入
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| name | string | 是 | 世界书名称。如果是聊天书，通常传 "Current Chat"。 |
+| name | string | 是 | 世界书名称（全局世界书名）。如果 `scope: 'chat'`，也可传 `"Current Chat"` 作为别名（表示当前聊天绑定的那本）。 |
 | scope | WorldBookScope | 否 | 作用域。可选：`global`, `character`, `chat`。如果不传将按该顺序尝试查找。 |
 
 ## 输出
@@ -84,6 +88,10 @@ console.log(`包含条目数量: ${result.worldBook.entries.length}`);
 if (result.worldBook.entries.length > 0) {
   console.log("第一个条目内容:", result.worldBook.entries[0].content);
 }
+
+// 获取“当前聊天绑定”的世界书（兼容写法）
+const chatBook = await ST_API.worldBook.get({ name: "Current Chat", scope: "chat" });
+console.log("当前聊天绑定的世界书名:", chatBook.worldBook.name);
 ```
 
 ### 响应示例

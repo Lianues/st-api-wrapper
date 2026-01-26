@@ -9677,6 +9677,15 @@ var __publicField = (obj, key, value) => {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
+  function getCurrentCharacter(ctx) {
+    const raw = ctx == null ? void 0 : ctx.characterId;
+    if (raw === void 0 || raw === null)
+      return {};
+    const chid = String(raw);
+    const chidNum = Number(chid);
+    const char = (ctx == null ? void 0 : ctx.characters) && (ctx.characters[chid] ?? (Number.isNaN(chidNum) ? void 0 : ctx.characters[chidNum])) || void 0;
+    return { chid, char };
+  }
   async function triggerSettingsRefresh() {
     const ctx = getSTContext$1();
     if (!ctx)
@@ -9910,43 +9919,57 @@ var __publicField = (obj, key, value) => {
     return { name, entries };
   }
   async function listWorldBooks(input = {}) {
-    var _a;
+    var _a, _b, _c;
     const worldBooks = [];
     const ctx = getSTContext$1();
     const scope = input == null ? void 0 : input.scope;
     if (!scope || scope === "global") {
-      if (ctx == null ? void 0 : ctx.updateWorldInfoList) {
+      if (ctx == null ? void 0 : ctx.updateWorldInfoList)
         await ctx.updateWorldInfoList();
-      }
-      const worldNames = window.world_names || (ctx == null ? void 0 : ctx.world_names) || [];
-      if (Array.isArray(worldNames)) {
-        worldNames.forEach((name) => {
-          if (!worldBooks.find((b) => b.name === name && b.scope === "global")) {
-            worldBooks.push({ name, scope: "global" });
-          }
+      let worldNames = [];
+      try {
+        const resp = await fetch("/api/settings/get", {
+          method: "POST",
+          headers: { ...((_a = ctx == null ? void 0 : ctx.getRequestHeaders) == null ? void 0 : _a.call(ctx)) || {}, "Content-Type": "application/json" },
+          body: JSON.stringify({})
         });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (Array.isArray(data == null ? void 0 : data.world_names)) {
+            worldNames = data.world_names;
+          }
+        }
+      } catch {
       }
+      if (!worldNames.length) {
+        const legacyWorldNames = window.world_names || (ctx == null ? void 0 : ctx.world_names) || [];
+        if (Array.isArray(legacyWorldNames))
+          worldNames = legacyWorldNames;
+      }
+      worldNames.forEach((name) => {
+        if (!worldBooks.find((b) => b.name === name && b.scope === "global")) {
+          worldBooks.push({ name, scope: "global" });
+        }
+      });
     }
     if (!scope || scope === "character") {
-      const characters = (ctx == null ? void 0 : ctx.characters) || [];
-      const currentChid = ctx == null ? void 0 : ctx.characterId;
-      if (typeof currentChid === "number" && characters[currentChid]) {
-        const char = characters[currentChid];
-        if ((_a = char.data) == null ? void 0 : _a.character_book) {
-          worldBooks.push({ name: char.name, scope: "character", ownerId: String(currentChid) });
-        }
+      const { chid: currentChid, char } = getCurrentCharacter(ctx);
+      const boundWorldName = (_c = (_b = char == null ? void 0 : char.data) == null ? void 0 : _b.extensions) == null ? void 0 : _c.world;
+      if (currentChid && typeof boundWorldName === "string" && boundWorldName) {
+        worldBooks.push({ name: boundWorldName, scope: "character", ownerId: currentChid });
       }
     }
     if (!scope || scope === "chat") {
       const chatMetadata = ctx == null ? void 0 : ctx.chatMetadata;
-      if (chatMetadata == null ? void 0 : chatMetadata.world_info) {
-        worldBooks.push({ name: "Current Chat", scope: "chat", ownerId: ctx == null ? void 0 : ctx.chatId });
+      const boundWorldName = (chatMetadata == null ? void 0 : chatMetadata.world_info) ?? (chatMetadata == null ? void 0 : chatMetadata["world_info"]);
+      if (typeof boundWorldName === "string" && boundWorldName) {
+        worldBooks.push({ name: boundWorldName, scope: "chat", ownerId: ctx == null ? void 0 : ctx.chatId });
       }
     }
     return { worldBooks };
   }
   async function getWorldBook(input) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c;
     const ctx = getSTContext$1();
     const scopes = input.scope ? [input.scope] : ["global", "character", "chat"];
     for (const scope of scopes) {
@@ -9974,52 +9997,50 @@ var __publicField = (obj, key, value) => {
         }
       }
       if (scope === "character") {
-        const char = ctx == null ? void 0 : ctx.characters[ctx == null ? void 0 : ctx.characterId];
-        const isMatch = (char == null ? void 0 : char.name) === input.name || ((_c = (_b = char == null ? void 0 : char.data) == null ? void 0 : _b.character_book) == null ? void 0 : _c.name) === input.name;
-        if (isMatch && ((_d = char == null ? void 0 : char.data) == null ? void 0 : _d.character_book)) {
-          return {
-            worldBook: fromStBook(char.data.character_book, char.data.character_book.name || char.name),
-            scope: "character"
-          };
+        const { char } = getCurrentCharacter(ctx);
+        const boundWorldName = (_c = (_b = char == null ? void 0 : char.data) == null ? void 0 : _b.extensions) == null ? void 0 : _c.world;
+        const isLegacyAlias = typeof (char == null ? void 0 : char.name) === "string" && input.name === char.name;
+        if (typeof boundWorldName === "string" && boundWorldName && (input.name === boundWorldName || isLegacyAlias)) {
+          const global2 = await getWorldBook({ name: boundWorldName, scope: "global" });
+          return { worldBook: global2.worldBook, scope: "character" };
         }
       }
       if (scope === "chat") {
-        if (input.name === "Current Chat" || input.name === (ctx == null ? void 0 : ctx.chatId)) {
-          const chatMetadata = ctx == null ? void 0 : ctx.chatMetadata;
-          if (chatMetadata == null ? void 0 : chatMetadata.world_info) {
-            return {
-              worldBook: fromStBook(chatMetadata.world_info, "Current Chat"),
-              scope: "chat"
-            };
-          }
+        const chatMetadata = ctx == null ? void 0 : ctx.chatMetadata;
+        const boundWorldName = (chatMetadata == null ? void 0 : chatMetadata.world_info) ?? (chatMetadata == null ? void 0 : chatMetadata["world_info"]);
+        const isLegacyAlias = input.name === "Current Chat" || input.name === (ctx == null ? void 0 : ctx.chatId);
+        if (typeof boundWorldName === "string" && boundWorldName && (input.name === boundWorldName || isLegacyAlias)) {
+          const global2 = await getWorldBook({ name: boundWorldName, scope: "global" });
+          return { worldBook: global2.worldBook, scope: "chat" };
         }
       }
     }
     throw new Error(`WorldBook not found: ${input.name}`);
   }
   async function updateWorldBook(input) {
-    var _a;
     const { worldBook, scope } = await getWorldBook({ name: input.name, scope: input.scope });
     const ctx = getSTContext$1();
+    const currentName = worldBook.name;
     if (input.entries) {
       worldBook.entries = input.entries;
-      await saveWorldBookInternal(worldBook, scope);
+      await saveWorldBookInternal(worldBook);
     }
-    if (input.newName && input.newName !== input.name) {
-      if (scope === "global") {
-        await saveWorldBookInternal({ name: input.newName, entries: worldBook.entries }, "global");
-        await deleteWorldBook({ name: input.name, scope: "global" });
-      } else if (scope === "character") {
-        const char = ctx == null ? void 0 : ctx.characters[ctx == null ? void 0 : ctx.characterId];
-        if (char && ((_a = char.data) == null ? void 0 : _a.character_book)) {
-          char.data.character_book.name = input.newName;
+    if (input.newName && input.newName !== currentName) {
+      await saveWorldBookInternal({ name: input.newName, entries: worldBook.entries });
+      await deleteWorldBook({ name: currentName, scope: "global" });
+      if (scope === "character") {
+        const { char } = getCurrentCharacter(ctx);
+        if (char) {
+          char.data = char.data || {};
+          char.data.extensions = char.data.extensions || {};
+          char.data.extensions.world = input.newName;
           if (ctx.saveCharacterDebounced)
             await ctx.saveCharacterDebounced();
         }
       } else if (scope === "chat") {
         const chatMetadata = ctx == null ? void 0 : ctx.chatMetadata;
-        if (chatMetadata == null ? void 0 : chatMetadata.world_info) {
-          chatMetadata.world_info.name = input.newName;
+        if (chatMetadata) {
+          chatMetadata["world_info"] = input.newName;
           if (ctx.saveMetadataDebounced)
             ctx.saveMetadataDebounced();
         }
@@ -10028,10 +10049,10 @@ var __publicField = (obj, key, value) => {
       return { ok: true, name: input.newName };
     }
     await triggerSettingsRefresh();
-    return { ok: true, name: input.name };
+    return { ok: true, name: currentName };
   }
   async function createWorldBook(input) {
-    var _a;
+    var _a, _b, _c;
     const ctx = getSTContext$1();
     const scope = input.scope || "global";
     const stEntries = {};
@@ -10051,19 +10072,30 @@ var __publicField = (obj, key, value) => {
         return { name: input.name, ok: true };
       }
     } else if (scope === "character") {
-      const char = ctx == null ? void 0 : ctx.characters[ctx == null ? void 0 : ctx.characterId];
-      if (char) {
+      const resp = await fetch("/api/worldinfo/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(_b = ctx == null ? void 0 : ctx.getRequestHeaders) == null ? void 0 : _b.call(ctx) },
+        body: JSON.stringify({ name: input.name, data: { entries: stEntries } })
+      });
+      const { char } = getCurrentCharacter(ctx);
+      if (resp.ok && char) {
         char.data = char.data || {};
-        char.data.character_book = { name: input.name, entries: stEntries };
+        char.data.extensions = char.data.extensions || {};
+        char.data.extensions.world = input.name;
         if (ctx.saveCharacterDebounced)
           await ctx.saveCharacterDebounced();
         await triggerSettingsRefresh();
         return { name: input.name, ok: true };
       }
     } else if (scope === "chat") {
+      const resp = await fetch("/api/worldinfo/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(_c = ctx == null ? void 0 : ctx.getRequestHeaders) == null ? void 0 : _c.call(ctx) },
+        body: JSON.stringify({ name: input.name, data: { entries: stEntries } })
+      });
       const chatMetadata = ctx == null ? void 0 : ctx.chatMetadata;
-      if (chatMetadata) {
-        chatMetadata.world_info = { name: input.name, entries: stEntries };
+      if (resp.ok && chatMetadata) {
+        chatMetadata["world_info"] = input.name;
         if (ctx.saveMetadataDebounced)
           ctx.saveMetadataDebounced();
         await triggerSettingsRefresh();
@@ -10073,9 +10105,10 @@ var __publicField = (obj, key, value) => {
     return { name: input.name, ok: false };
   }
   async function deleteWorldBook(input) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f;
     const ctx = getSTContext$1();
     const scope = input.scope || "global";
+    const deleteGlobalFile = input.deleteGlobalFile === true;
     if (scope === "global") {
       const resp = await fetch("/api/worldinfo/delete", {
         method: "POST",
@@ -10087,20 +10120,52 @@ var __publicField = (obj, key, value) => {
         return { ok: true };
       }
     } else if (scope === "character") {
-      const char = ctx == null ? void 0 : ctx.characters[ctx == null ? void 0 : ctx.characterId];
-      if (char && ((_b = char.data) == null ? void 0 : _b.character_book)) {
-        delete char.data.character_book;
+      const { char } = getCurrentCharacter(ctx);
+      const boundWorldName = (_c = (_b = char == null ? void 0 : char.data) == null ? void 0 : _b.extensions) == null ? void 0 : _c.world;
+      const isLegacyAlias = typeof (char == null ? void 0 : char.name) === "string" && input.name === char.name;
+      const targetWorldName = typeof boundWorldName === "string" && boundWorldName && (input.name === boundWorldName || isLegacyAlias) ? boundWorldName : null;
+      if (char && targetWorldName) {
+        if (((_d = char.data) == null ? void 0 : _d.extensions) && Object.prototype.hasOwnProperty.call(char.data.extensions, "world")) {
+          delete char.data.extensions.world;
+        }
         if (ctx.saveCharacterDebounced)
           await ctx.saveCharacterDebounced();
+        if (deleteGlobalFile) {
+          const resp = await fetch("/api/worldinfo/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(_e = ctx == null ? void 0 : ctx.getRequestHeaders) == null ? void 0 : _e.call(ctx) },
+            body: JSON.stringify({ name: targetWorldName })
+          });
+          if (!resp.ok) {
+            await triggerSettingsRefresh();
+            return { ok: false };
+          }
+        }
         await triggerSettingsRefresh();
         return { ok: true };
       }
     } else if (scope === "chat") {
       const chatMetadata = ctx == null ? void 0 : ctx.chatMetadata;
-      if (chatMetadata == null ? void 0 : chatMetadata.world_info) {
-        delete chatMetadata.world_info;
+      const boundWorldName = (chatMetadata == null ? void 0 : chatMetadata.world_info) ?? (chatMetadata == null ? void 0 : chatMetadata["world_info"]);
+      const isLegacyAlias = input.name === "Current Chat" || input.name === (ctx == null ? void 0 : ctx.chatId);
+      const targetWorldName = typeof boundWorldName === "string" && boundWorldName && (input.name === boundWorldName || isLegacyAlias) ? boundWorldName : null;
+      if (chatMetadata && targetWorldName) {
+        if (Object.prototype.hasOwnProperty.call(chatMetadata, "world_info")) {
+          delete chatMetadata["world_info"];
+        }
         if (ctx.saveMetadataDebounced)
           ctx.saveMetadataDebounced();
+        if (deleteGlobalFile) {
+          const resp = await fetch("/api/worldinfo/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(_f = ctx == null ? void 0 : ctx.getRequestHeaders) == null ? void 0 : _f.call(ctx) },
+            body: JSON.stringify({ name: targetWorldName })
+          });
+          if (!resp.ok) {
+            await triggerSettingsRefresh();
+            return { ok: false };
+          }
+        }
         await triggerSettingsRefresh();
         return { ok: true };
       }
@@ -10150,7 +10215,7 @@ var __publicField = (obj, key, value) => {
       ...input.entry
     };
     worldBook.entries.push(newEntry);
-    await saveWorldBookInternal(worldBook, scope);
+    await saveWorldBookInternal(worldBook);
     return { entry: newEntry, ok: true };
   }
   async function updateWorldBookEntry(input) {
@@ -10161,7 +10226,7 @@ var __publicField = (obj, key, value) => {
     }
     const updatedEntry = { ...worldBook.entries[entryIndex], ...input.patch };
     worldBook.entries[entryIndex] = updatedEntry;
-    await saveWorldBookInternal(worldBook, scope);
+    await saveWorldBookInternal(worldBook);
     return { entry: updatedEntry, ok: true };
   }
   async function deleteWorldBookEntry(input) {
@@ -10171,47 +10236,30 @@ var __publicField = (obj, key, value) => {
       return { ok: true };
     }
     worldBook.entries.splice(entryIndex, 1);
-    await saveWorldBookInternal(worldBook, scope);
+    await saveWorldBookInternal(worldBook);
     return { ok: true };
   }
-  async function saveWorldBookInternal(book, scope) {
-    var _a, _b;
+  async function saveWorldBookInternal(book, _scope) {
+    var _a;
     const ctx = getSTContext$1();
     const stEntries = {};
     book.entries.forEach((e) => {
       stEntries[e.index] = toStEntry(e);
     });
-    if (scope === "global") {
-      if (ctx == null ? void 0 : ctx.saveWorldInfo) {
-        await ctx.saveWorldInfo(book.name, { entries: stEntries }, true);
-      } else {
-        await fetch("/api/worldinfo/edit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(_a = ctx == null ? void 0 : ctx.getRequestHeaders) == null ? void 0 : _a.call(ctx) },
-          body: JSON.stringify({ name: book.name, data: { entries: stEntries } })
-        });
-        if ((ctx == null ? void 0 : ctx.eventSource) && (ctx == null ? void 0 : ctx.eventTypes)) {
-          ctx.eventSource.emit(ctx.eventTypes.WORLDINFO_UPDATED, book.name, { entries: stEntries });
-        }
-        if (window.selected_world_info === book.name && window.reloadEditor) {
-          window.world_info = stEntries;
-          window.reloadEditor();
-        }
+    if (ctx == null ? void 0 : ctx.saveWorldInfo) {
+      await ctx.saveWorldInfo(book.name, { entries: stEntries }, true);
+    } else {
+      await fetch("/api/worldinfo/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(_a = ctx == null ? void 0 : ctx.getRequestHeaders) == null ? void 0 : _a.call(ctx) },
+        body: JSON.stringify({ name: book.name, data: { entries: stEntries } })
+      });
+      if ((ctx == null ? void 0 : ctx.eventSource) && (ctx == null ? void 0 : ctx.eventTypes)) {
+        ctx.eventSource.emit(ctx.eventTypes.WORLDINFO_UPDATED, book.name, { entries: stEntries });
       }
-    } else if (scope === "character") {
-      const char = ctx == null ? void 0 : ctx.characters[ctx == null ? void 0 : ctx.characterId];
-      if (char && ((_b = char.data) == null ? void 0 : _b.character_book)) {
-        char.data.character_book.entries = stEntries;
-        if (ctx.saveCharacterDebounced) {
-          await ctx.saveCharacterDebounced();
-        }
-      }
-    } else if (scope === "chat") {
-      const chatMetadata = ctx == null ? void 0 : ctx.chatMetadata;
-      if (chatMetadata == null ? void 0 : chatMetadata.world_info) {
-        chatMetadata.world_info.entries = stEntries;
-        if (ctx.saveMetadataDebounced)
-          ctx.saveMetadataDebounced();
+      if (window.selected_world_info === book.name && window.reloadEditor) {
+        window.world_info = stEntries;
+        window.reloadEditor();
       }
     }
     await triggerSettingsRefresh();

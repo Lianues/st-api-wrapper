@@ -2,7 +2,14 @@
 
 ## 描述
 
-列出当前环境中可用的所有世界书。支持按作用域（全局、角色、聊天）进行筛选。
+列出当前环境中可用的世界书。支持按作用域（全局、角色、聊天）进行筛选。
+
+> 重要说明：SillyTavern 的 `character/chat` 并不存在“独立存储的世界书文件”。  
+> - `global`：真实的世界书文件（worldinfo）。  
+> - `character`：当前角色通过 `extensions.world` **绑定到某个全局世界书名**。  
+> - `chat`：当前聊天通过 `chat_metadata['world_info']` **绑定到某个全局世界书名**。  
+>  
+> 因此：`list({ scope: 'character' })` / `list({ scope: 'chat' })` 只会返回“当前角色/当前聊天”绑定的那一本（如果有），并不会列出所有角色/所有聊天的绑定情况。
 
 ## 输入
 
@@ -54,12 +61,12 @@ console.log("全局书列表:", globalBooks.map(b => b.name));
       "scope": "global"
     },
     {
-      "name": "Seraphina",
+      "name": "Skyrim_Lore",
       "scope": "character",
       "ownerId": "5"
     },
     {
-      "name": "Current Chat",
+      "name": "Cyberpunk_City",
       "scope": "chat",
       "ownerId": "chat-2023-10-27"
     }

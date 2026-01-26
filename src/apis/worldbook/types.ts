@@ -111,6 +111,14 @@ export interface CreateWorldBookOutput {
 export interface DeleteWorldBookInput {
   name: string;
   scope?: WorldBookScope;
+  /**
+   * 仅对 `scope: 'character' | 'chat'` 生效：
+   * - 不传 / false：仅解绑（不删除对应的全局世界书文件）
+   * - true：解绑并同时删除对应的全局世界书文件
+   *
+   * 对 `scope: 'global'` 无效。
+   */
+  deleteGlobalFile?: boolean;
 }
 
 export interface DeleteWorldBookOutput {
