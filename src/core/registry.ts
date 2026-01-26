@@ -15,6 +15,18 @@ export class ApiRegistry {
   private readonly endpoints = new Map<string, EndpointDefinition<any, any>>();
   private readonly apiTree: Record<string, any> = Object.create(null);
 
+  /**
+   * Returns (and creates if missing) the namespace object stored inside apiTree.
+   * Useful for dynamic endpoint registration after window.ST_API is created.
+   */
+  getNamespaceObject(namespace: string) {
+    if (!namespace) throw new Error('namespace is required');
+    if (!this.apiTree[namespace]) {
+      this.apiTree[namespace] = Object.create(null);
+    }
+    return this.apiTree[namespace];
+  }
+
   registerModule(moduleDef: ApiModuleDefinition) {
     if (!moduleDef?.namespace) throw new Error('ApiModuleDefinition.namespace is required');
 
@@ -33,6 +45,27 @@ export class ApiRegistry {
       // Create a friendly namespace object API.
       this.apiTree[moduleDef.namespace][ep.name] = (input: any) => this.call(fullName, input);
     }
+  }
+
+  /**
+   * Unregister an endpoint by full name ("namespace.endpoint").
+   * Returns true if removed, false if it didn't exist.
+   */
+  unregister(fullName: string): boolean {
+    const ep = this.endpoints.get(fullName);
+    if (!ep) return false;
+    this.endpoints.delete(fullName);
+
+    const [namespace, endpoint] = fullName.split('.', 2);
+    if (namespace && endpoint && this.apiTree[namespace]) {
+      try {
+        delete this.apiTree[namespace][endpoint];
+      } catch {
+        // ignore
+      }
+    }
+
+    return true;
   }
 
   async call<TInput, TOutput>(fullName: string, input: TInput): Promise<TOutput> {

@@ -38,6 +38,7 @@ var __publicField = (obj, key, value) => {
   const isArray = Array.isArray;
   const isMap = (val) => toTypeString(val) === "[object Map]";
   const isSet = (val) => toTypeString(val) === "[object Set]";
+  const isDate = (val) => toTypeString(val) === "[object Date]";
   const isFunction = (val) => typeof val === "function";
   const isString = (val) => typeof val === "string";
   const isSymbol = (val) => typeof val === "symbol";
@@ -158,6 +159,57 @@ var __publicField = (obj, key, value) => {
   const isSpecialBooleanAttr = /* @__PURE__ */ makeMap(specialBooleanAttrs);
   function includeBooleanAttr(value) {
     return !!value || value === "";
+  }
+  function looseCompareArrays(a, b) {
+    if (a.length !== b.length)
+      return false;
+    let equal = true;
+    for (let i = 0; equal && i < a.length; i++) {
+      equal = looseEqual(a[i], b[i]);
+    }
+    return equal;
+  }
+  function looseEqual(a, b) {
+    if (a === b)
+      return true;
+    let aValidType = isDate(a);
+    let bValidType = isDate(b);
+    if (aValidType || bValidType) {
+      return aValidType && bValidType ? a.getTime() === b.getTime() : false;
+    }
+    aValidType = isSymbol(a);
+    bValidType = isSymbol(b);
+    if (aValidType || bValidType) {
+      return a === b;
+    }
+    aValidType = isArray(a);
+    bValidType = isArray(b);
+    if (aValidType || bValidType) {
+      return aValidType && bValidType ? looseCompareArrays(a, b) : false;
+    }
+    aValidType = isObject(a);
+    bValidType = isObject(b);
+    if (aValidType || bValidType) {
+      if (!aValidType || !bValidType) {
+        return false;
+      }
+      const aKeysCount = Object.keys(a).length;
+      const bKeysCount = Object.keys(b).length;
+      if (aKeysCount !== bKeysCount) {
+        return false;
+      }
+      for (const key in a) {
+        const aHasKey = a.hasOwnProperty(key);
+        const bHasKey = b.hasOwnProperty(key);
+        if (aHasKey && !bHasKey || !aHasKey && bHasKey || !looseEqual(a[key], b[key])) {
+          return false;
+        }
+      }
+    }
+    return String(a) === String(b);
+  }
+  function looseIndexOf(arr, val) {
+    return arr.findIndex((item) => looseEqual(item, val));
   }
   const isRef$1 = (val) => {
     return !!(val && val["__v_isRef"] === true);
@@ -2095,6 +2147,36 @@ var __publicField = (obj, key, value) => {
     renderFnWithContext._c = true;
     renderFnWithContext._d = true;
     return renderFnWithContext;
+  }
+  function withDirectives(vnode, directives) {
+    if (currentRenderingInstance === null) {
+      return vnode;
+    }
+    const instance = getComponentPublicInstance(currentRenderingInstance);
+    const bindings = vnode.dirs || (vnode.dirs = []);
+    for (let i = 0; i < directives.length; i++) {
+      let [dir, value, arg, modifiers = EMPTY_OBJ] = directives[i];
+      if (dir) {
+        if (isFunction(dir)) {
+          dir = {
+            mounted: dir,
+            updated: dir
+          };
+        }
+        if (dir.deep) {
+          traverse(value);
+        }
+        bindings.push({
+          dir,
+          instance,
+          value,
+          oldValue: void 0,
+          arg,
+          modifiers
+        });
+      }
+    }
+    return vnode;
   }
   function invokeDirectiveHook(vnode, prevVNode, instance, name) {
     const bindings = vnode.dirs;
@@ -6230,6 +6312,198 @@ var __publicField = (obj, key, value) => {
     }
     return key in el;
   }
+  const getModelAssigner = (vnode) => {
+    const fn = vnode.props["onUpdate:modelValue"] || false;
+    return isArray(fn) ? (value) => invokeArrayFns(fn, value) : fn;
+  };
+  function onCompositionStart(e) {
+    e.target.composing = true;
+  }
+  function onCompositionEnd(e) {
+    const target = e.target;
+    if (target.composing) {
+      target.composing = false;
+      target.dispatchEvent(new Event("input"));
+    }
+  }
+  const assignKey = /* @__PURE__ */ Symbol("_assign");
+  function castValue(value, trim, number) {
+    if (trim)
+      value = value.trim();
+    if (number)
+      value = looseToNumber(value);
+    return value;
+  }
+  const vModelText = {
+    created(el, { modifiers: { lazy, trim, number } }, vnode) {
+      el[assignKey] = getModelAssigner(vnode);
+      const castToNumber = number || vnode.props && vnode.props.type === "number";
+      addEventListener(el, lazy ? "change" : "input", (e) => {
+        if (e.target.composing)
+          return;
+        el[assignKey](castValue(el.value, trim, castToNumber));
+      });
+      if (trim || castToNumber) {
+        addEventListener(el, "change", () => {
+          el.value = castValue(el.value, trim, castToNumber);
+        });
+      }
+      if (!lazy) {
+        addEventListener(el, "compositionstart", onCompositionStart);
+        addEventListener(el, "compositionend", onCompositionEnd);
+        addEventListener(el, "change", onCompositionEnd);
+      }
+    },
+    // set value on mounted so it's after min/max for type="range"
+    mounted(el, { value }) {
+      el.value = value == null ? "" : value;
+    },
+    beforeUpdate(el, { value, oldValue, modifiers: { lazy, trim, number } }, vnode) {
+      el[assignKey] = getModelAssigner(vnode);
+      if (el.composing)
+        return;
+      const elValue = (number || el.type === "number") && !/^0\d/.test(el.value) ? looseToNumber(el.value) : el.value;
+      const newValue = value == null ? "" : value;
+      if (elValue === newValue) {
+        return;
+      }
+      if (document.activeElement === el && el.type !== "range") {
+        if (lazy && value === oldValue) {
+          return;
+        }
+        if (trim && el.value.trim() === newValue) {
+          return;
+        }
+      }
+      el.value = newValue;
+    }
+  };
+  const vModelCheckbox = {
+    // #4096 array checkboxes need to be deep traversed
+    deep: true,
+    created(el, _, vnode) {
+      el[assignKey] = getModelAssigner(vnode);
+      addEventListener(el, "change", () => {
+        const modelValue = el._modelValue;
+        const elementValue = getValue(el);
+        const checked = el.checked;
+        const assign = el[assignKey];
+        if (isArray(modelValue)) {
+          const index = looseIndexOf(modelValue, elementValue);
+          const found = index !== -1;
+          if (checked && !found) {
+            assign(modelValue.concat(elementValue));
+          } else if (!checked && found) {
+            const filtered = [...modelValue];
+            filtered.splice(index, 1);
+            assign(filtered);
+          }
+        } else if (isSet(modelValue)) {
+          const cloned = new Set(modelValue);
+          if (checked) {
+            cloned.add(elementValue);
+          } else {
+            cloned.delete(elementValue);
+          }
+          assign(cloned);
+        } else {
+          assign(getCheckboxValue(el, checked));
+        }
+      });
+    },
+    // set initial checked on mount to wait for true-value/false-value
+    mounted: setChecked,
+    beforeUpdate(el, binding, vnode) {
+      el[assignKey] = getModelAssigner(vnode);
+      setChecked(el, binding, vnode);
+    }
+  };
+  function setChecked(el, { value, oldValue }, vnode) {
+    el._modelValue = value;
+    let checked;
+    if (isArray(value)) {
+      checked = looseIndexOf(value, vnode.props.value) > -1;
+    } else if (isSet(value)) {
+      checked = value.has(vnode.props.value);
+    } else {
+      if (value === oldValue)
+        return;
+      checked = looseEqual(value, getCheckboxValue(el, true));
+    }
+    if (el.checked !== checked) {
+      el.checked = checked;
+    }
+  }
+  const vModelSelect = {
+    // <select multiple> value need to be deep traversed
+    deep: true,
+    created(el, { value, modifiers: { number } }, vnode) {
+      const isSetModel = isSet(value);
+      addEventListener(el, "change", () => {
+        const selectedVal = Array.prototype.filter.call(el.options, (o) => o.selected).map(
+          (o) => number ? looseToNumber(getValue(o)) : getValue(o)
+        );
+        el[assignKey](
+          el.multiple ? isSetModel ? new Set(selectedVal) : selectedVal : selectedVal[0]
+        );
+        el._assigning = true;
+        nextTick(() => {
+          el._assigning = false;
+        });
+      });
+      el[assignKey] = getModelAssigner(vnode);
+    },
+    // set value in mounted & updated because <select> relies on its children
+    // <option>s.
+    mounted(el, { value }) {
+      setSelected(el, value);
+    },
+    beforeUpdate(el, _binding, vnode) {
+      el[assignKey] = getModelAssigner(vnode);
+    },
+    updated(el, { value }) {
+      if (!el._assigning) {
+        setSelected(el, value);
+      }
+    }
+  };
+  function setSelected(el, value) {
+    const isMultiple = el.multiple;
+    const isArrayValue = isArray(value);
+    if (isMultiple && !isArrayValue && !isSet(value)) {
+      return;
+    }
+    for (let i = 0, l = el.options.length; i < l; i++) {
+      const option = el.options[i];
+      const optionValue = getValue(option);
+      if (isMultiple) {
+        if (isArrayValue) {
+          const optionType = typeof optionValue;
+          if (optionType === "string" || optionType === "number") {
+            option.selected = value.some((v) => String(v) === String(optionValue));
+          } else {
+            option.selected = looseIndexOf(value, optionValue) > -1;
+          }
+        } else {
+          option.selected = value.has(optionValue);
+        }
+      } else if (looseEqual(getValue(option), value)) {
+        if (el.selectedIndex !== i)
+          el.selectedIndex = i;
+        return;
+      }
+    }
+    if (!isMultiple && el.selectedIndex !== -1) {
+      el.selectedIndex = -1;
+    }
+  }
+  function getValue(el) {
+    return "_value" in el ? el._value : el.value;
+  }
+  function getCheckboxValue(el, checked) {
+    const key = checked ? "_trueValue" : "_falseValue";
+    return key in el ? el[key] : checked;
+  }
   const rendererOptions = /* @__PURE__ */ extend({ patchProp }, nodeOps);
   let renderer;
   function ensureRenderer() {
@@ -6273,21 +6547,21 @@ var __publicField = (obj, key, value) => {
     }
     return container;
   }
-  const _hoisted_1 = { class: "st-api-wrapper-panel" };
-  const _hoisted_2 = { class: "status" };
-  const _hoisted_3 = { key: 0 };
-  const _hoisted_4 = { key: 1 };
-  const _hoisted_5 = {
+  const _hoisted_1$1 = { class: "st-api-wrapper-panel" };
+  const _hoisted_2$1 = { class: "status" };
+  const _hoisted_3$1 = { key: 0 };
+  const _hoisted_4$1 = { key: 1 };
+  const _hoisted_5$1 = {
     key: 2,
     class: "error"
   };
-  const _hoisted_6 = {
+  const _hoisted_6$1 = {
     key: 0,
     class: "details"
   };
-  const _hoisted_7 = { class: "messages-list" };
-  const _hoisted_8 = { class: "role-tag" };
-  const _sfc_main = /* @__PURE__ */ defineComponent({
+  const _hoisted_7$1 = { class: "messages-list" };
+  const _hoisted_8$1 = { class: "role-tag" };
+  const _sfc_main$1 = /* @__PURE__ */ defineComponent({
     __name: "App",
     setup(__props) {
       const endpoints2 = /* @__PURE__ */ ref([]);
@@ -6330,7 +6604,7 @@ var __publicField = (obj, key, value) => {
         }
       }
       return (_ctx, _cache) => {
-        return openBlock(), createElementBlock("div", _hoisted_1, [
+        return openBlock(), createElementBlock("div", _hoisted_1$1, [
           createBaseVNode("div", { class: "actions flex-container" }, [
             createBaseVNode("button", {
               class: "menu_button",
@@ -6343,21 +6617,21 @@ var __publicField = (obj, key, value) => {
               onClick: fetchPrompt
             }, "抓取最终提示词（控制台）")
           ]),
-          createBaseVNode("div", _hoisted_2, [
+          createBaseVNode("div", _hoisted_2$1, [
             createBaseVNode("div", null, "已注册 endpoints：" + toDisplayString(endpoints2.value.length), 1),
-            lastPrompt.value ? (openBlock(), createElementBlock("div", _hoisted_3, "上次抓取消息数：" + toDisplayString(lastPrompt.value.chat.length), 1)) : createCommentVNode("", true),
-            loading.value ? (openBlock(), createElementBlock("div", _hoisted_4, "正在构建提示词...")) : createCommentVNode("", true),
-            error.value ? (openBlock(), createElementBlock("div", _hoisted_5, toDisplayString(error.value), 1)) : createCommentVNode("", true)
+            lastPrompt.value ? (openBlock(), createElementBlock("div", _hoisted_3$1, "上次抓取消息数：" + toDisplayString(lastPrompt.value.chat.length), 1)) : createCommentVNode("", true),
+            loading.value ? (openBlock(), createElementBlock("div", _hoisted_4$1, "正在构建提示词...")) : createCommentVNode("", true),
+            error.value ? (openBlock(), createElementBlock("div", _hoisted_5$1, toDisplayString(error.value), 1)) : createCommentVNode("", true)
           ]),
-          lastPrompt.value ? (openBlock(), createElementBlock("details", _hoisted_6, [
+          lastPrompt.value ? (openBlock(), createElementBlock("details", _hoisted_6$1, [
             _cache[0] || (_cache[0] = createBaseVNode("summary", null, "预览 messages（前 5 条）", -1)),
-            createBaseVNode("div", _hoisted_7, [
+            createBaseVNode("div", _hoisted_7$1, [
               (openBlock(true), createElementBlock(Fragment, null, renderList(previewMessages.value, (msg, idx) => {
                 return openBlock(), createElementBlock("div", {
                   key: idx,
                   class: normalizeClass(["message-item", msg.role])
                 }, [
-                  createBaseVNode("span", _hoisted_8, toDisplayString(msg.role.toUpperCase()), 1),
+                  createBaseVNode("span", _hoisted_8$1, toDisplayString(msg.role.toUpperCase()), 1),
                   createBaseVNode("pre", null, toDisplayString("parts" in msg ? msg.parts.map((p2) => "text" in p2 ? p2.text : "").join("") : msg.content), 1)
                 ], 2);
               }), 128))
@@ -6375,11 +6649,541 @@ var __publicField = (obj, key, value) => {
     }
     return target;
   };
-  const App = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-5dcd21f5"]]);
+  const App = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-5dcd21f5"]]);
+  const _hoisted_1 = { class: "st-api-wrapper-panel" };
+  const _hoisted_2 = { class: "actions flex-container" };
+  const _hoisted_3 = ["disabled"];
+  const _hoisted_4 = ["disabled"];
+  const _hoisted_5 = { class: "status" };
+  const _hoisted_6 = { key: 0 };
+  const _hoisted_7 = {
+    key: 1,
+    class: "warn"
+  };
+  const _hoisted_8 = {
+    key: 2,
+    class: "error"
+  };
+  const _hoisted_9 = {
+    class: "details",
+    open: ""
+  };
+  const _hoisted_10 = { class: "form" };
+  const _hoisted_11 = { class: "row" };
+  const _hoisted_12 = { class: "field" };
+  const _hoisted_13 = { class: "field" };
+  const _hoisted_14 = { class: "field checkbox" };
+  const _hoisted_15 = { class: "field" };
+  const _hoisted_16 = { class: "row" };
+  const _hoisted_17 = { class: "field" };
+  const _hoisted_18 = { class: "field" };
+  const _hoisted_19 = { class: "field" };
+  const _hoisted_20 = { class: "file-row" };
+  const _hoisted_21 = ["disabled"];
+  const _hoisted_22 = ["disabled"];
+  const _hoisted_23 = { class: "field" };
+  const _hoisted_24 = { class: "actions flex-container" };
+  const _hoisted_25 = ["disabled"];
+  const _hoisted_26 = {
+    class: "details",
+    open: ""
+  };
+  const _hoisted_27 = { class: "table-wrap" };
+  const _hoisted_28 = { class: "table" };
+  const _hoisted_29 = { key: 0 };
+  const _hoisted_30 = { class: "muted" };
+  const _hoisted_31 = {
+    key: 1,
+    class: "muted"
+  };
+  const _hoisted_32 = { key: 0 };
+  const _hoisted_33 = { key: 1 };
+  const _hoisted_34 = { class: "muted" };
+  const _hoisted_35 = {
+    key: 0,
+    class: "error"
+  };
+  const _hoisted_36 = { key: 1 };
+  const _hoisted_37 = ["onClick", "disabled"];
+  const _hoisted_38 = ["onClick", "disabled"];
+  const _hoisted_39 = { key: 0 };
+  const _hoisted_40 = {
+    key: 0,
+    class: "details"
+  };
+  const _hoisted_41 = { class: "json" };
+  const _sfc_main = /* @__PURE__ */ defineComponent({
+    __name: "ServerPluginManager",
+    setup(__props) {
+      function getApi() {
+        const api = window.ST_API;
+        if (!api)
+          throw new Error("ST_API 未就绪");
+        if (!api.serverPlugin)
+          throw new Error("serverPlugin API 未注册（请确认已更新并启用 st-api-wrapper）");
+        return api;
+      }
+      const loading = /* @__PURE__ */ ref(false);
+      const restarting = /* @__PURE__ */ ref(false);
+      const restartMessage = /* @__PURE__ */ ref("");
+      const error = /* @__PURE__ */ ref(null);
+      const pluginsRoot = /* @__PURE__ */ ref("");
+      const plugins = /* @__PURE__ */ ref([]);
+      const detail = /* @__PURE__ */ ref(null);
+      const installMethod = /* @__PURE__ */ ref("git");
+      const gitUrl = /* @__PURE__ */ ref("");
+      const folderName = /* @__PURE__ */ ref("");
+      const branch = /* @__PURE__ */ ref("");
+      const restartMode = /* @__PURE__ */ ref("respawn");
+      const restartAfterOp = /* @__PURE__ */ ref(true);
+      const zipInputEl = /* @__PURE__ */ ref(null);
+      const zipFile = /* @__PURE__ */ ref(null);
+      const zipFolderName = /* @__PURE__ */ ref("");
+      async function refreshList() {
+        loading.value = true;
+        error.value = null;
+        try {
+          const api = getApi();
+          const r = await api.serverPlugin.list({ includeInfo: true });
+          pluginsRoot.value = r.pluginsRoot;
+          plugins.value = r.plugins ?? [];
+        } catch (e) {
+          error.value = (e == null ? void 0 : e.message) ?? String(e);
+        } finally {
+          loading.value = false;
+        }
+      }
+      async function loadDetail(name) {
+        loading.value = true;
+        error.value = null;
+        try {
+          const api = getApi();
+          const r = await api.serverPlugin.get({ name, includeInfo: true });
+          detail.value = r;
+        } catch (e) {
+          error.value = (e == null ? void 0 : e.message) ?? String(e);
+        } finally {
+          loading.value = false;
+        }
+      }
+      async function installPlugin() {
+        var _a;
+        loading.value = true;
+        error.value = null;
+        detail.value = null;
+        try {
+          const api = getApi();
+          const r = await api.serverPlugin.add({
+            gitUrl: gitUrl.value,
+            ...folderName.value.trim() ? { folderName: folderName.value.trim() } : {},
+            ...branch.value.trim() ? { branch: branch.value.trim() } : {},
+            restart: restartAfterOp.value,
+            restartMode: restartMode.value,
+            restartDelayMs: 800
+          });
+          console.log("[ST API Wrapper] serverPlugin.add:", r);
+          toastr.success("安装命令已提交");
+          if ((_a = r == null ? void 0 : r.restart) == null ? void 0 : _a.scheduled) {
+            beginRestartFlow(`已请求重启（${r.restart.mode}，约 ${r.restart.delayMs}ms）`);
+          } else {
+            await refreshList();
+          }
+        } catch (e) {
+          error.value = (e == null ? void 0 : e.message) ?? String(e);
+        } finally {
+          loading.value = false;
+        }
+      }
+      async function installSelected() {
+        if (installMethod.value === "git") {
+          await installPlugin();
+          return;
+        }
+        await installZip();
+      }
+      function chooseZip() {
+        var _a;
+        (_a = zipInputEl.value) == null ? void 0 : _a.click();
+      }
+      function clearZip() {
+        zipFile.value = null;
+        if (zipInputEl.value) {
+          zipInputEl.value.value = "";
+        }
+      }
+      function onZipChange(e) {
+        var _a;
+        const input = e.target;
+        const file = ((_a = input.files) == null ? void 0 : _a[0]) ?? null;
+        zipFile.value = file;
+        if (file && !zipFolderName.value.trim()) {
+          const name = file.name.toLowerCase().endsWith(".zip") ? file.name.slice(0, -4) : file.name;
+          zipFolderName.value = name;
+        }
+      }
+      async function readFileAsDataUrl(file) {
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+          reader.onload = () => resolve(String(reader.result ?? ""));
+          reader.readAsDataURL(file);
+        });
+      }
+      async function installZip() {
+        var _a;
+        if (!zipFile.value)
+          return;
+        loading.value = true;
+        error.value = null;
+        detail.value = null;
+        try {
+          const api = getApi();
+          const zipBase64 = await readFileAsDataUrl(zipFile.value);
+          const r = await api.serverPlugin.addZip({
+            zipBase64,
+            fileName: zipFile.value.name,
+            ...zipFolderName.value.trim() ? { folderName: zipFolderName.value.trim() } : {},
+            restart: restartAfterOp.value,
+            restartMode: restartMode.value,
+            restartDelayMs: 800
+          });
+          console.log("[ST API Wrapper] serverPlugin.addZip:", r);
+          toastr.success("ZIP 安装已提交");
+          if ((_a = r == null ? void 0 : r.restart) == null ? void 0 : _a.scheduled) {
+            beginRestartFlow(`已请求重启（${r.restart.mode}，约 ${r.restart.delayMs}ms）`);
+          } else {
+            await refreshList();
+          }
+        } catch (e) {
+          error.value = (e == null ? void 0 : e.message) ?? String(e);
+        } finally {
+          loading.value = false;
+        }
+      }
+      async function deleteOne(name) {
+        var _a;
+        if (!confirm(`确认删除后端插件：${name}？
+
+注意：删除后会重启酒馆（如果勾选了自动重启）。`))
+          return;
+        loading.value = true;
+        error.value = null;
+        detail.value = null;
+        try {
+          const api = getApi();
+          const r = await api.serverPlugin.delete({
+            name,
+            restart: restartAfterOp.value,
+            restartMode: restartMode.value,
+            restartDelayMs: 800
+          });
+          console.log("[ST API Wrapper] serverPlugin.delete:", r);
+          toastr.success("删除命令已提交");
+          if ((_a = r == null ? void 0 : r.restart) == null ? void 0 : _a.scheduled) {
+            beginRestartFlow(`已请求重启（${r.restart.mode}，约 ${r.restart.delayMs}ms）`);
+          } else {
+            await refreshList();
+          }
+        } catch (e) {
+          error.value = (e == null ? void 0 : e.message) ?? String(e);
+        } finally {
+          loading.value = false;
+        }
+      }
+      async function manualRestart() {
+        if (!confirm("确认重启酒馆后端？"))
+          return;
+        loading.value = true;
+        error.value = null;
+        try {
+          const api = getApi();
+          const r = await api.serverPlugin.restart({ mode: restartMode.value, delayMs: 800 });
+          console.log("[ST API Wrapper] serverPlugin.restart:", r);
+          toastr.warning("已请求重启");
+          beginRestartFlow(`已请求重启（${r.restart.mode}，约 ${r.restart.delayMs}ms）`);
+        } catch (e) {
+          error.value = (e == null ? void 0 : e.message) ?? String(e);
+        } finally {
+          loading.value = false;
+        }
+      }
+      function beginRestartFlow(msg) {
+        var _a, _b;
+        restarting.value = true;
+        restartMessage.value = msg;
+        const ctx = (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
+        const headers = (() => {
+          const base = {};
+          if (ctx == null ? void 0 : ctx.getRequestHeaders)
+            Object.assign(base, ctx.getRequestHeaders());
+          base["Content-Type"] = "application/json";
+          return base;
+        })();
+        const startedAt = Date.now();
+        const timeoutMs = 6e4;
+        const tick = async () => {
+          const elapsed = Date.now() - startedAt;
+          if (elapsed > timeoutMs) {
+            restarting.value = false;
+            restartMessage.value = "重启超时：请手动刷新页面或手动重启酒馆";
+            return;
+          }
+          try {
+            const r = await fetch("/api/ping", { method: "POST", headers, body: "{}" });
+            if (r.ok || r.status === 204) {
+              restartMessage.value = "服务已恢复，正在刷新页面...";
+              setTimeout(() => window.location.reload(), 500);
+              return;
+            }
+          } catch {
+          }
+          restartMessage.value = `等待服务恢复...（${Math.ceil((timeoutMs - elapsed) / 1e3)}s）`;
+          setTimeout(tick, 1e3);
+        };
+        setTimeout(tick, 1500);
+      }
+      onMounted(() => {
+        refreshList();
+      });
+      return (_ctx, _cache) => {
+        return openBlock(), createElementBlock("div", _hoisted_1, [
+          createBaseVNode("div", _hoisted_2, [
+            createBaseVNode("button", {
+              class: "menu_button",
+              type: "button",
+              onClick: refreshList,
+              disabled: loading.value
+            }, " 刷新列表 ", 8, _hoisted_3),
+            createBaseVNode("button", {
+              class: "menu_button",
+              type: "button",
+              onClick: manualRestart,
+              disabled: loading.value || restarting.value
+            }, " 重启酒馆（后端） ", 8, _hoisted_4)
+          ]),
+          createBaseVNode("div", _hoisted_5, [
+            pluginsRoot.value ? (openBlock(), createElementBlock("div", _hoisted_6, [
+              _cache[7] || (_cache[7] = createTextVNode("plugins 目录：", -1)),
+              createBaseVNode("code", null, toDisplayString(pluginsRoot.value), 1)
+            ])) : createCommentVNode("", true),
+            createBaseVNode("div", null, "已发现插件：" + toDisplayString(plugins.value.length), 1),
+            restarting.value ? (openBlock(), createElementBlock("div", _hoisted_7, "正在重启中：" + toDisplayString(restartMessage.value), 1)) : createCommentVNode("", true),
+            error.value ? (openBlock(), createElementBlock("div", _hoisted_8, toDisplayString(error.value), 1)) : createCommentVNode("", true)
+          ]),
+          createBaseVNode("details", _hoisted_9, [
+            _cache[18] || (_cache[18] = createBaseVNode("summary", null, "安装 Server Plugin", -1)),
+            createBaseVNode("div", _hoisted_10, [
+              createBaseVNode("div", _hoisted_11, [
+                createBaseVNode("label", _hoisted_12, [
+                  _cache[9] || (_cache[9] = createBaseVNode("div", { class: "label" }, "安装方式", -1)),
+                  withDirectives(createBaseVNode("select", {
+                    class: "text",
+                    "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => installMethod.value = $event)
+                  }, [..._cache[8] || (_cache[8] = [
+                    createBaseVNode("option", { value: "git" }, "Git", -1),
+                    createBaseVNode("option", { value: "zip" }, "ZIP", -1)
+                  ])], 512), [
+                    [vModelSelect, installMethod.value]
+                  ])
+                ]),
+                createBaseVNode("label", _hoisted_13, [
+                  _cache[11] || (_cache[11] = createBaseVNode("div", { class: "label" }, "restartMode", -1)),
+                  withDirectives(createBaseVNode("select", {
+                    class: "text",
+                    "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => restartMode.value = $event)
+                  }, [..._cache[10] || (_cache[10] = [
+                    createBaseVNode("option", { value: "respawn" }, "respawn（推荐）", -1),
+                    createBaseVNode("option", { value: "exit" }, "exit（仅退出）", -1)
+                  ])], 512), [
+                    [vModelSelect, restartMode.value]
+                  ])
+                ]),
+                createBaseVNode("label", _hoisted_14, [
+                  withDirectives(createBaseVNode("input", {
+                    type: "checkbox",
+                    "onUpdate:modelValue": _cache[2] || (_cache[2] = ($event) => restartAfterOp.value = $event)
+                  }, null, 512), [
+                    [vModelCheckbox, restartAfterOp.value]
+                  ]),
+                  _cache[12] || (_cache[12] = createBaseVNode("span", null, "操作完成后自动重启", -1))
+                ])
+              ]),
+              installMethod.value === "git" ? (openBlock(), createElementBlock(Fragment, { key: 0 }, [
+                createBaseVNode("label", _hoisted_15, [
+                  _cache[13] || (_cache[13] = createBaseVNode("div", { class: "label" }, "gitUrl", -1)),
+                  withDirectives(createBaseVNode("input", {
+                    class: "text",
+                    "onUpdate:modelValue": _cache[3] || (_cache[3] = ($event) => gitUrl.value = $event),
+                    placeholder: "https://github.com/xxx/yyy.git"
+                  }, null, 512), [
+                    [vModelText, gitUrl.value]
+                  ])
+                ]),
+                createBaseVNode("div", _hoisted_16, [
+                  createBaseVNode("label", _hoisted_17, [
+                    _cache[14] || (_cache[14] = createBaseVNode("div", { class: "label" }, "folderName（可选）", -1)),
+                    withDirectives(createBaseVNode("input", {
+                      class: "text",
+                      "onUpdate:modelValue": _cache[4] || (_cache[4] = ($event) => folderName.value = $event),
+                      placeholder: "不填则从 URL 推断"
+                    }, null, 512), [
+                      [vModelText, folderName.value]
+                    ])
+                  ]),
+                  createBaseVNode("label", _hoisted_18, [
+                    _cache[15] || (_cache[15] = createBaseVNode("div", { class: "label" }, "branch（可选）", -1)),
+                    withDirectives(createBaseVNode("input", {
+                      class: "text",
+                      "onUpdate:modelValue": _cache[5] || (_cache[5] = ($event) => branch.value = $event),
+                      placeholder: "main / master / ..."
+                    }, null, 512), [
+                      [vModelText, branch.value]
+                    ])
+                  ])
+                ])
+              ], 64)) : (openBlock(), createElementBlock(Fragment, { key: 1 }, [
+                createBaseVNode("label", _hoisted_19, [
+                  _cache[16] || (_cache[16] = createBaseVNode("div", { class: "label" }, "上传 ZIP 文件", -1)),
+                  createBaseVNode("div", _hoisted_20, [
+                    createBaseVNode("input", {
+                      ref_key: "zipInputEl",
+                      ref: zipInputEl,
+                      class: "hidden-file-input",
+                      type: "file",
+                      accept: ".zip,application/zip",
+                      onChange: onZipChange
+                    }, null, 544),
+                    createBaseVNode("button", {
+                      class: "menu_button",
+                      type: "button",
+                      onClick: chooseZip,
+                      disabled: loading.value || restarting.value
+                    }, " 上传 ZIP 文件 ", 8, _hoisted_21),
+                    createBaseVNode("span", {
+                      class: normalizeClass(["file-name", { muted: !zipFile.value }])
+                    }, toDisplayString(zipFile.value ? zipFile.value.name : "未选择文件"), 3),
+                    zipFile.value ? (openBlock(), createElementBlock("button", {
+                      key: 0,
+                      class: "menu_button",
+                      type: "button",
+                      onClick: clearZip,
+                      disabled: loading.value || restarting.value
+                    }, " 清除 ", 8, _hoisted_22)) : createCommentVNode("", true)
+                  ])
+                ]),
+                createBaseVNode("label", _hoisted_23, [
+                  _cache[17] || (_cache[17] = createBaseVNode("div", { class: "label" }, "folderName（可选）", -1)),
+                  withDirectives(createBaseVNode("input", {
+                    class: "text",
+                    "onUpdate:modelValue": _cache[6] || (_cache[6] = ($event) => zipFolderName.value = $event),
+                    placeholder: "不填则从 zip 文件名推断"
+                  }, null, 512), [
+                    [vModelText, zipFolderName.value]
+                  ])
+                ])
+              ], 64)),
+              createBaseVNode("div", _hoisted_24, [
+                createBaseVNode("button", {
+                  class: "menu_button",
+                  type: "button",
+                  onClick: installSelected,
+                  disabled: loading.value || restarting.value || (installMethod.value === "git" ? !gitUrl.value.trim() : !zipFile.value)
+                }, " 安装 ", 8, _hoisted_25)
+              ])
+            ])
+          ]),
+          createBaseVNode("details", _hoisted_26, [
+            _cache[22] || (_cache[22] = createBaseVNode("summary", null, "已安装插件", -1)),
+            createBaseVNode("div", _hoisted_27, [
+              createBaseVNode("table", _hoisted_28, [
+                _cache[21] || (_cache[21] = createBaseVNode("thead", null, [
+                  createBaseVNode("tr", null, [
+                    createBaseVNode("th", null, "name"),
+                    createBaseVNode("th", null, "kind"),
+                    createBaseVNode("th", null, "info"),
+                    createBaseVNode("th", null, "entry"),
+                    createBaseVNode("th", null, "操作")
+                  ])
+                ], -1)),
+                createBaseVNode("tbody", null, [
+                  (openBlock(true), createElementBlock(Fragment, null, renderList(plugins.value, (p2) => {
+                    return openBlock(), createElementBlock("tr", {
+                      key: p2.name
+                    }, [
+                      createBaseVNode("td", null, [
+                        createBaseVNode("code", null, toDisplayString(p2.name), 1)
+                      ]),
+                      createBaseVNode("td", null, toDisplayString(p2.kind), 1),
+                      createBaseVNode("td", null, [
+                        p2.info ? (openBlock(), createElementBlock("div", _hoisted_29, [
+                          createBaseVNode("div", null, [
+                            createBaseVNode("b", null, toDisplayString(p2.info.name), 1),
+                            _cache[19] || (_cache[19] = createTextVNode()),
+                            createBaseVNode("small", null, "(" + toDisplayString(p2.info.id) + ")", 1)
+                          ]),
+                          createBaseVNode("div", _hoisted_30, toDisplayString(p2.info.description), 1)
+                        ])) : (openBlock(), createElementBlock("div", _hoisted_31, [
+                          p2.infoError ? (openBlock(), createElementBlock("span", _hoisted_32, "infoError: " + toDisplayString(p2.infoError), 1)) : (openBlock(), createElementBlock("span", _hoisted_33, "（无 info）"))
+                        ]))
+                      ]),
+                      createBaseVNode("td", _hoisted_34, [
+                        p2.entryMissing ? (openBlock(), createElementBlock("div", _hoisted_35, "entryMissing")) : createCommentVNode("", true),
+                        p2.entryFile ? (openBlock(), createElementBlock("div", _hoisted_36, [
+                          createBaseVNode("code", null, toDisplayString(p2.entryFile), 1)
+                        ])) : createCommentVNode("", true)
+                      ]),
+                      createBaseVNode("td", null, [
+                        createBaseVNode("button", {
+                          class: "menu_button",
+                          type: "button",
+                          onClick: ($event) => loadDetail(p2.name),
+                          disabled: loading.value
+                        }, " 获取 ", 8, _hoisted_37),
+                        createBaseVNode("button", {
+                          class: "menu_button danger",
+                          type: "button",
+                          onClick: ($event) => deleteOne(p2.name),
+                          disabled: loading.value || restarting.value
+                        }, " 删除 ", 8, _hoisted_38)
+                      ])
+                    ]);
+                  }), 128)),
+                  plugins.value.length === 0 ? (openBlock(), createElementBlock("tr", _hoisted_39, [..._cache[20] || (_cache[20] = [
+                    createBaseVNode("td", {
+                      colspan: "5",
+                      class: "muted"
+                    }, "暂无插件", -1)
+                  ])])) : createCommentVNode("", true)
+                ])
+              ])
+            ])
+          ]),
+          detail.value ? (openBlock(), createElementBlock("details", _hoisted_40, [
+            createBaseVNode("summary", null, "当前详情：" + toDisplayString(detail.value.name), 1),
+            createBaseVNode("pre", _hoisted_41, toDisplayString(JSON.stringify(detail.value, null, 2)), 1)
+          ])) : createCommentVNode("", true)
+        ]);
+      };
+    }
+  });
+  const ServerPluginManager_vue_vue_type_style_index_0_scoped_36d515f4_lang = "";
+  const ServerPluginManager = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-36d515f4"]]);
   class ApiRegistry {
     constructor() {
       __publicField(this, "endpoints", /* @__PURE__ */ new Map());
       __publicField(this, "apiTree", /* @__PURE__ */ Object.create(null));
+    }
+    /**
+     * Returns (and creates if missing) the namespace object stored inside apiTree.
+     * Useful for dynamic endpoint registration after window.ST_API is created.
+     */
+    getNamespaceObject(namespace) {
+      if (!namespace)
+        throw new Error("namespace is required");
+      if (!this.apiTree[namespace]) {
+        this.apiTree[namespace] = /* @__PURE__ */ Object.create(null);
+      }
+      return this.apiTree[namespace];
     }
     registerModule(moduleDef) {
       if (!(moduleDef == null ? void 0 : moduleDef.namespace))
@@ -6395,6 +7199,24 @@ var __publicField = (obj, key, value) => {
         this.endpoints.set(fullName, ep);
         this.apiTree[moduleDef.namespace][ep.name] = (input) => this.call(fullName, input);
       }
+    }
+    /**
+     * Unregister an endpoint by full name ("namespace.endpoint").
+     * Returns true if removed, false if it didn't exist.
+     */
+    unregister(fullName) {
+      const ep = this.endpoints.get(fullName);
+      if (!ep)
+        return false;
+      this.endpoints.delete(fullName);
+      const [namespace, endpoint] = fullName.split(".", 2);
+      if (namespace && endpoint && this.apiTree[namespace]) {
+        try {
+          delete this.apiTree[namespace][endpoint];
+        } catch {
+        }
+      }
+      return true;
     }
     async call(fullName, input) {
       const ep = this.endpoints.get(fullName);
@@ -7080,7 +7902,7 @@ var __publicField = (obj, key, value) => {
     });
     return false;
   }
-  async function get$7(input) {
+  async function get$8(input) {
     const ctx = window.SillyTavern.getContext();
     const { eventSource, event_types, generate: generate2, characterId } = ctx;
     const timeoutMs = (input == null ? void 0 : input.timeoutMs) ?? 8e3;
@@ -7489,7 +8311,7 @@ var __publicField = (obj, key, value) => {
   }
   const getEndpoint$6 = {
     name: "get",
-    handler: get$7
+    handler: get$8
   };
   const buildRequestEndpoint = {
     name: "buildRequest",
@@ -7545,7 +8367,7 @@ var __publicField = (obj, key, value) => {
     }
     return { path };
   }
-  async function get$6(input) {
+  async function get$7(input) {
     const url = constructPath(input);
     const response = await fetch(url);
     if (!response.ok) {
@@ -7563,7 +8385,7 @@ var __publicField = (obj, key, value) => {
       mimeType: blob.type
     };
   }
-  async function list$6(input) {
+  async function list$7(input) {
     const ctx = window.SillyTavern.getContext();
     let targetChName = input.chName || "uploads";
     if (input.useCharacterDir) {
@@ -7609,7 +8431,7 @@ var __publicField = (obj, key, value) => {
       }
       return { success: true };
     }
-    const { files } = await list$6({
+    const { files } = await list$7({
       chName: input.chName,
       useCharacterDir: input.useCharacterDir
     });
@@ -7640,11 +8462,11 @@ var __publicField = (obj, key, value) => {
   };
   const getEndpoint$5 = {
     name: "get",
-    handler: get$6
+    handler: get$7
   };
   const listEndpoint$5 = {
     name: "list",
-    handler: list$6
+    handler: list$7
   };
   const deleteEndpoint$4 = {
     name: "delete",
@@ -8927,7 +9749,7 @@ var __publicField = (obj, key, value) => {
   function registerHooksApis(registry2) {
     registry2.registerModule(hooksModuleDefinition);
   }
-  async function list$5(input) {
+  async function list$6(input) {
     const ctx = window.SillyTavern.getContext();
     const rawChat = ctx.chat || [];
     const messages = await normalizeChatMessages(rawChat, {
@@ -8941,7 +9763,7 @@ var __publicField = (obj, key, value) => {
       chatId: ctx.chatId
     };
   }
-  async function get$5(input) {
+  async function get$6(input) {
     const ctx = window.SillyTavern.getContext();
     const rawChat = ctx.chat || [];
     const index = input == null ? void 0 : input.index;
@@ -9093,11 +9915,11 @@ var __publicField = (obj, key, value) => {
   }
   const getEndpoint$4 = {
     name: "get",
-    handler: get$5
+    handler: get$6
   };
   const listEndpoint$4 = {
     name: "list",
-    handler: list$5
+    handler: list$6
   };
   const createEndpoint$2 = {
     name: "create",
@@ -9471,7 +10293,7 @@ var __publicField = (obj, key, value) => {
     }
     return results;
   }
-  function get$4(input) {
+  function get$5(input) {
     const presetManager = getPresetManager();
     const name = (input == null ? void 0 : input.name) || presetManager.getSelectedPresetName();
     const raw = getRawSettings(name);
@@ -9480,7 +10302,7 @@ var __publicField = (obj, key, value) => {
     }
     return { preset: null };
   }
-  function list$4() {
+  function list$5() {
     const presetManager = getPresetManager();
     const active = presetManager.getSelectedPresetName() || "";
     return { presets: getAllPresetsDetail(), active };
@@ -9622,11 +10444,11 @@ var __publicField = (obj, key, value) => {
   }
   const getEndpoint$3 = {
     name: "get",
-    handler: get$4
+    handler: get$5
   };
   const listEndpoint$3 = {
     name: "list",
-    handler: list$4
+    handler: list$5
   };
   const createEndpoint$1 = {
     name: "create",
@@ -10317,12 +11139,12 @@ var __publicField = (obj, key, value) => {
   function registerWorldBookApis(registry2) {
     registry2.registerModule(worldBookModuleDefinition);
   }
-  function getContext$1() {
+  function getContext$3() {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
   function triggerRefresh() {
-    const ctx = getContext$1();
+    const ctx = getContext$3();
     if (!ctx)
       return;
     if (ctx.saveSettingsDebounced) {
@@ -10334,8 +11156,8 @@ var __publicField = (obj, key, value) => {
       eventSource.emit(eventTypes.SETTINGS_LOADED);
     }
   }
-  async function get$3(input) {
-    const ctx = getContext$1();
+  async function get$4(input) {
+    const ctx = getContext$3();
     if (!ctx)
       throw new Error("SillyTavern context not available");
     const scope = (input == null ? void 0 : input.scope) || "local";
@@ -10345,9 +11167,9 @@ var __publicField = (obj, key, value) => {
     const value = ctx.variables[scope].get(name);
     return { value };
   }
-  async function list$3(input) {
+  async function list$4(input) {
     var _a;
-    const ctx = getContext$1();
+    const ctx = getContext$3();
     if (!ctx)
       throw new Error("SillyTavern context not available");
     const scope = (input == null ? void 0 : input.scope) || "local";
@@ -10358,7 +11180,7 @@ var __publicField = (obj, key, value) => {
     return { variables: { ...globals } };
   }
   async function set(input) {
-    const ctx = getContext$1();
+    const ctx = getContext$3();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -10367,7 +11189,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function deleteVariable(input) {
-    const ctx = getContext$1();
+    const ctx = getContext$3();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -10375,8 +11197,8 @@ var __publicField = (obj, key, value) => {
     triggerRefresh();
     return { ok: true };
   }
-  async function add(input) {
-    const ctx = getContext$1();
+  async function add$1(input) {
+    const ctx = getContext$3();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -10385,7 +11207,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function inc(input) {
-    const ctx = getContext$1();
+    const ctx = getContext$3();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -10394,7 +11216,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function dec(input) {
-    const ctx = getContext$1();
+    const ctx = getContext$3();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -10402,18 +11224,18 @@ var __publicField = (obj, key, value) => {
     triggerRefresh();
     return { ok: true };
   }
-  const endpoints = [
-    { name: "get", handler: get$3 },
-    { name: "list", handler: list$3 },
+  const endpoints$2 = [
+    { name: "get", handler: get$4 },
+    { name: "list", handler: list$4 },
     { name: "set", handler: set },
     { name: "delete", handler: deleteVariable },
-    { name: "add", handler: add },
+    { name: "add", handler: add$1 },
     { name: "inc", handler: inc },
     { name: "dec", handler: dec }
   ];
   const variablesModuleDefinition = {
     namespace: "variables",
-    endpoints
+    endpoints: endpoints$2
   };
   function registerVariablesApis(registry2) {
     registry2.registerModule(variablesModuleDefinition);
@@ -10426,7 +11248,7 @@ var __publicField = (obj, key, value) => {
       return null;
     }
   }
-  async function list$2(input) {
+  async function list$3(input) {
     const includeGlobal = (input == null ? void 0 : input.includeGlobal) ?? true;
     const includeCharacter = (input == null ? void 0 : input.includeCharacter) ?? true;
     const includePreset = (input == null ? void 0 : input.includePreset) ?? true;
@@ -10450,7 +11272,7 @@ var __publicField = (obj, key, value) => {
     }
     return { regexScripts: rawScripts.map(fromStRegex) };
   }
-  async function get$2(input) {
+  async function get$3(input) {
     const idOrName = String(input.idOrName || "").trim();
     if (!idOrName)
       throw new Error("idOrName is required");
@@ -10481,8 +11303,8 @@ var __publicField = (obj, key, value) => {
     const result = engine.getRegexedString(input.text, input.placement);
     return { text: result };
   }
-  async function run(input) {
-    const { regexScript } = await get$2({ idOrName: input.idOrName });
+  async function run$1(input) {
+    const { regexScript } = await get$3({ idOrName: input.idOrName });
     if (!regexScript)
       throw new Error(`Regex script not found: ${input.idOrName}`);
     const engine = await importRegexEngine();
@@ -10613,11 +11435,11 @@ var __publicField = (obj, key, value) => {
   }
   const getEndpoint$2 = {
     name: "get",
-    handler: get$2
+    handler: get$3
   };
   const listEndpoint$2 = {
     name: "list",
-    handler: list$2
+    handler: list$3
   };
   const processEndpoint = {
     name: "process",
@@ -10625,7 +11447,7 @@ var __publicField = (obj, key, value) => {
   };
   const runEndpoint = {
     name: "run",
-    handler: run
+    handler: run$1
   };
   const createEndpoint = {
     name: "create",
@@ -10658,7 +11480,7 @@ var __publicField = (obj, key, value) => {
       return "";
     }
   }
-  async function postJson(url, body, mode = "json") {
+  async function postJson$2(url, body, mode = "json") {
     var _a;
     const ctx = getSTContext();
     const resp = await fetch(url, {
@@ -10757,13 +11579,13 @@ var __publicField = (obj, key, value) => {
       createDate
     };
   }
-  async function get$1(input) {
+  async function get$2(input) {
     const avatarUrl = avatarUrlFromName(input == null ? void 0 : input.name);
-    const raw = await postJson("/api/characters/get", { avatar_url: avatarUrl }, "json");
+    const raw = await postJson$2("/api/characters/get", { avatar_url: avatarUrl }, "json");
     return { character: toCharacterCard(raw) };
   }
-  async function list$1(input = {}) {
-    const rawList = await postJson("/api/characters/all", {}, "json");
+  async function list$2(input = {}) {
+    const rawList = await postJson$2("/api/characters/all", {}, "json");
     if (!(input == null ? void 0 : input.full)) {
       return { characters: (Array.isArray(rawList) ? rawList : []).map((x) => toCharacterCard(x)) };
     }
@@ -10772,7 +11594,7 @@ var __publicField = (obj, key, value) => {
       const avatar = getAvatarFromAny(c);
       if (!avatar)
         continue;
-      const full = await get$1({ name: stripPngSuffix(avatar) });
+      const full = await get$2({ name: stripPngSuffix(avatar) });
       out.push(full.character);
     }
     return { characters: out };
@@ -10781,7 +11603,7 @@ var __publicField = (obj, key, value) => {
     const avatarUrl = String((input == null ? void 0 : input.avatarUrl) || "").trim();
     if (!avatarUrl)
       throw new Error("avatarUrl is required");
-    await postJson("/api/characters/delete", {
+    await postJson$2("/api/characters/delete", {
       avatar_url: avatarUrl,
       delete_chats: !!(input == null ? void 0 : input.deleteChats)
     }, "void");
@@ -10793,23 +11615,23 @@ var __publicField = (obj, key, value) => {
     if (!patch || typeof patch !== "object" || Array.isArray(patch)) {
       throw new Error("patch must be an object");
     }
-    await postJson("/api/characters/merge-attributes", {
+    await postJson$2("/api/characters/merge-attributes", {
       avatar: avatarUrl,
       ...patch
     }, "void");
     if (input == null ? void 0 : input.returnCharacter) {
-      const updated = await get$1({ name: input == null ? void 0 : input.name });
+      const updated = await get$2({ name: input == null ? void 0 : input.name });
       return { ok: true, character: updated.character };
     }
     return { ok: true };
   }
   const getEndpoint$1 = {
     name: "get",
-    handler: get$1
+    handler: get$2
   };
   const listEndpoint$1 = {
     name: "list",
-    handler: list$1
+    handler: list$2
   };
   const deleteEndpoint = {
     name: "delete",
@@ -11085,13 +11907,13 @@ var __publicField = (obj, key, value) => {
       return "";
     }
   }
-  function getContext() {
+  function getContext$2() {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
   function getCurrentCharacterAvatarFileName() {
     var _a;
-    const ctx = getContext();
+    const ctx = getContext$2();
     if (!ctx)
       return null;
     const characterId = ctx.characterId;
@@ -11109,7 +11931,7 @@ var __publicField = (obj, key, value) => {
   }
   function getCurrentUserAvatarFileName() {
     var _a, _b;
-    const ctx = getContext();
+    const ctx = getContext$2();
     if (!ctx)
       return null;
     const personas = (_a = ctx.powerUserSettings) == null ? void 0 : _a.personas;
@@ -11128,7 +11950,7 @@ var __publicField = (obj, key, value) => {
   async function fetchUserAvatarsList() {
     var _a;
     try {
-      const ctx = getContext();
+      const ctx = getContext$2();
       const headers = ((_a = ctx == null ? void 0 : ctx.getRequestHeaders) == null ? void 0 : _a.call(ctx, { omitContentType: true })) || {};
       const response = await fetch("/api/avatars/get", {
         method: "POST",
@@ -11147,7 +11969,7 @@ var __publicField = (obj, key, value) => {
   }
   async function buildAvatarOutput(type, fileName, isCurrent, includeFullBase64 = true) {
     var _a, _b;
-    const ctx = getContext();
+    const ctx = getContext$2();
     let url;
     let thumbnailUrl;
     if (type === "character") {
@@ -11178,7 +12000,7 @@ var __publicField = (obj, key, value) => {
       isCurrent
     };
   }
-  async function get(input) {
+  async function get$1(input) {
     await waitAppReady();
     const { type, name } = input;
     if (!type) {
@@ -11206,13 +12028,13 @@ var __publicField = (obj, key, value) => {
     }
     return buildAvatarOutput(type, fileName, isCurrent);
   }
-  async function list(input) {
+  async function list$1(input) {
     await waitAppReady();
     const { type, includeFullBase64 = false } = input;
     if (!type) {
       throw new Error("type is required");
     }
-    const ctx = getContext();
+    const ctx = getContext$2();
     if (!ctx) {
       throw new Error("SillyTavern context not available");
     }
@@ -11251,11 +12073,11 @@ var __publicField = (obj, key, value) => {
   }
   const getEndpoint = {
     name: "get",
-    handler: get
+    handler: get$1
   };
   const listEndpoint = {
     name: "list",
-    handler: list
+    handler: list$1
   };
   const avatarModuleDefinition = {
     namespace: "avatar",
@@ -11263,6 +12085,272 @@ var __publicField = (obj, key, value) => {
   };
   function registerAvatarApis(registry2) {
     registry2.registerModule(avatarModuleDefinition);
+  }
+  function getContext$1() {
+    var _a, _b;
+    return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
+  }
+  async function postJson$1(url, input) {
+    const ctx = getContext$1();
+    const headers = {};
+    if (ctx == null ? void 0 : ctx.getRequestHeaders)
+      Object.assign(headers, ctx.getRequestHeaders());
+    headers["Content-Type"] = "application/json";
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(input ?? {})
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`Request failed (${response.status} ${response.statusText}): ${text || url}`);
+    }
+    return await response.json();
+  }
+  async function probe(input) {
+    return await postJson$1("/api/plugins/command-exec/probe", input ?? {});
+  }
+  async function env(input) {
+    return await postJson$1("/api/plugins/command-exec/env", input ?? {});
+  }
+  async function which(input) {
+    return await postJson$1("/api/plugins/command-exec/which", input ?? {});
+  }
+  async function run(input) {
+    const hasScript = typeof (input == null ? void 0 : input.script) === "string" && input.script.trim() !== "";
+    const hasCommand = typeof (input == null ? void 0 : input.command) === "string" && input.command.trim() !== "";
+    if (!hasScript && !hasCommand)
+      throw new Error("command.run: either script or command is required");
+    return await postJson$1("/api/plugins/command-exec/run", input);
+  }
+  const endpoints$1 = [
+    { name: "probe", handler: probe },
+    { name: "env", handler: env },
+    { name: "which", handler: which },
+    { name: "run", handler: run }
+  ];
+  const commandModuleDefinition = {
+    namespace: "command",
+    endpoints: endpoints$1
+  };
+  function registerCommandApis(registry2) {
+    registry2.registerModule(commandModuleDefinition);
+  }
+  function getContext() {
+    var _a, _b;
+    return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
+  }
+  async function postJson(url, input) {
+    const ctx = getContext();
+    const headers = {};
+    if (ctx == null ? void 0 : ctx.getRequestHeaders)
+      Object.assign(headers, ctx.getRequestHeaders());
+    headers["Content-Type"] = "application/json";
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(input ?? {})
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`Request failed (${response.status} ${response.statusText}): ${text || url}`);
+    }
+    return await response.json();
+  }
+  async function list(input) {
+    return await postJson("/api/plugins/server-plugin-manager/list", input ?? {});
+  }
+  async function get(input) {
+    if (!(input == null ? void 0 : input.name))
+      throw new Error("serverPlugin.get: name is required");
+    return await postJson("/api/plugins/server-plugin-manager/get", input);
+  }
+  async function add(input) {
+    if (!(input == null ? void 0 : input.gitUrl))
+      throw new Error("serverPlugin.add: gitUrl is required");
+    return await postJson("/api/plugins/server-plugin-manager/add", input);
+  }
+  async function addZip(input) {
+    if (!(input == null ? void 0 : input.zipBase64))
+      throw new Error("serverPlugin.addZip: zipBase64 is required");
+    return await postJson("/api/plugins/server-plugin-manager/addZip", input);
+  }
+  async function addPath(input) {
+    if (!(input == null ? void 0 : input.sourcePath))
+      throw new Error("serverPlugin.addPath: sourcePath is required");
+    return await postJson("/api/plugins/server-plugin-manager/addPath", input);
+  }
+  async function deletePlugin(input) {
+    if (!(input == null ? void 0 : input.name))
+      throw new Error("serverPlugin.delete: name is required");
+    return await postJson("/api/plugins/server-plugin-manager/delete", input);
+  }
+  async function restart(input) {
+    return await postJson("/api/plugins/server-plugin-manager/restart", input ?? {});
+  }
+  const endpoints = [
+    { name: "list", handler: list },
+    { name: "get", handler: get },
+    { name: "add", handler: add },
+    { name: "addZip", handler: addZip },
+    { name: "addPath", handler: addPath },
+    { name: "delete", handler: deletePlugin },
+    { name: "restart", handler: restart }
+  ];
+  const serverPluginModuleDefinition = {
+    namespace: "serverPlugin",
+    endpoints
+  };
+  function registerServerPluginApis(registry2) {
+    registry2.registerModule(serverPluginModuleDefinition);
+  }
+  const RESERVED_ROOT_KEYS = /* @__PURE__ */ new Set([
+    "version",
+    "call",
+    "listEndpoints",
+    "getDocPath"
+  ]);
+  function isValidIdentifier(s) {
+    return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s);
+  }
+  function normalizeMethod(m) {
+    const up = String(m || "POST").toUpperCase();
+    switch (up) {
+      case "GET":
+      case "POST":
+      case "PUT":
+      case "PATCH":
+      case "DELETE":
+      case "HEAD":
+      case "OPTIONS":
+        return up;
+      default:
+        return "POST";
+    }
+  }
+  function normalizeResponseType(t) {
+    const v = String(t || "json").toLowerCase();
+    return v === "text" ? "text" : "json";
+  }
+  function makeFetchHandler(input) {
+    return async (body) => {
+      var _a, _b;
+      const ctx = (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
+      const headers = {};
+      if (input.useRequestHeaders && (ctx == null ? void 0 : ctx.getRequestHeaders)) {
+        Object.assign(headers, ctx.getRequestHeaders());
+      }
+      if (input.headers && typeof input.headers === "object") {
+        Object.assign(headers, input.headers);
+      }
+      const method = input.method;
+      const init = { method, headers };
+      if (method !== "GET" && method !== "HEAD") {
+        headers["Content-Type"] = input.contentType || "application/json";
+        if ((headers["Content-Type"] || "").includes("application/json")) {
+          init.body = JSON.stringify(body ?? {});
+        } else if (typeof body === "string") {
+          init.body = body;
+        } else {
+          init.body = JSON.stringify(body ?? {});
+        }
+      }
+      const res = await fetch(input.url, init);
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Request failed (${res.status} ${res.statusText}): ${text || input.url}`);
+      }
+      if (input.responseType === "text")
+        return await res.text();
+      return await res.json();
+    };
+  }
+  function registerServerApiApis(registry2) {
+    const dynamic = /* @__PURE__ */ new Map();
+    const register = {
+      name: "register",
+      handler: async (input) => {
+        const namespace = String((input == null ? void 0 : input.namespace) ?? "").trim();
+        const name = String((input == null ? void 0 : input.name) ?? "").trim();
+        const url = String((input == null ? void 0 : input.url) ?? "").trim();
+        if (!namespace)
+          throw new Error("serverApi.register: namespace is required");
+        if (!name)
+          throw new Error("serverApi.register: name is required");
+        if (!url)
+          throw new Error("serverApi.register: url is required");
+        if (RESERVED_ROOT_KEYS.has(namespace)) {
+          throw new Error(`serverApi.register: namespace "${namespace}" is reserved`);
+        }
+        if (!isValidIdentifier(namespace)) {
+          throw new Error(`serverApi.register: invalid namespace "${namespace}" (use [a-zA-Z0-9_] and not starting with a digit)`);
+        }
+        if (!isValidIdentifier(name)) {
+          throw new Error(`serverApi.register: invalid name "${name}" (use [a-zA-Z0-9_] and not starting with a digit)`);
+        }
+        if (!url.startsWith("/")) {
+          throw new Error('serverApi.register: url should start with "/" (relative to current origin)');
+        }
+        const method = normalizeMethod(input == null ? void 0 : input.method);
+        const responseType = normalizeResponseType(input == null ? void 0 : input.responseType);
+        const useRequestHeaders = (input == null ? void 0 : input.useRequestHeaders) !== false;
+        const contentType = String((input == null ? void 0 : input.contentType) ?? "application/json");
+        const handler = makeFetchHandler({
+          url,
+          method,
+          useRequestHeaders,
+          headers: input == null ? void 0 : input.headers,
+          contentType,
+          responseType
+        });
+        registry2.registerModule({
+          namespace,
+          endpoints: [{ name, handler }]
+        });
+        const nsObj = registry2.getNamespaceObject(namespace);
+        if (window.ST_API) {
+          window.ST_API[namespace] = nsObj;
+        }
+        const fullName = `${namespace}.${name}`;
+        const rec = {
+          ok: true,
+          fullName,
+          namespace,
+          name,
+          url,
+          method,
+          contentType,
+          responseType
+        };
+        dynamic.set(fullName, rec);
+        return rec;
+      }
+    };
+    const list2 = {
+      name: "list",
+      handler: async () => {
+        return {
+          ok: true,
+          endpoints: Array.from(dynamic.values()).sort((a, b) => a.fullName.localeCompare(b.fullName))
+        };
+      }
+    };
+    const unregister = {
+      name: "unregister",
+      handler: async (input) => {
+        const fullName = String((input == null ? void 0 : input.fullName) ?? "").trim() || `${String((input == null ? void 0 : input.namespace) ?? "").trim()}.${String((input == null ? void 0 : input.name) ?? "").trim()}`;
+        if (!fullName.includes("."))
+          throw new Error("serverApi.unregister: fullName (namespace.endpoint) is required");
+        const removed = registry2.unregister(fullName);
+        dynamic.delete(fullName);
+        return { ok: true, fullName, removed };
+      }
+    };
+    const moduleDef = {
+      namespace: "serverApi",
+      endpoints: [register, list2, unregister]
+    };
+    registry2.registerModule(moduleDef);
   }
   function registerAllApis(registry2) {
     registerPromptApis(registry2);
@@ -11277,6 +12365,9 @@ var __publicField = (obj, key, value) => {
     registerCharacterApis(registry2);
     registerSlashCommandApis(registry2);
     registerAvatarApis(registry2);
+    registerCommandApis(registry2);
+    registerServerPluginApis(registry2);
+    registerServerApiApis(registry2);
   }
   const VERSION_STR = "1.0.0";
   const registry = new ApiRegistry();
@@ -11290,7 +12381,7 @@ var __publicField = (obj, key, value) => {
     const { eventSource, event_types } = ctx;
     let isRegistered = false;
     const register = async () => {
-      if (isRegistered || document.getElementById("st-api-wrapper.settings_container"))
+      if (isRegistered || document.getElementById("st-api-wrapper_settings_container"))
         return;
       isRegistered = true;
       const safeRegister = async (label, fn) => {
@@ -11312,6 +12403,45 @@ var __publicField = (obj, key, value) => {
             const mountPoint = document.createElement("div");
             container.appendChild(mountPoint);
             const app = createApp(App);
+            app.mount(mountPoint);
+            return () => app.unmount();
+          }
+        }
+      }));
+      const isServerPluginManagerAvailable = await (async () => {
+        var _a2, _b2;
+        try {
+          const liveCtx = (_b2 = (_a2 = window.SillyTavern) == null ? void 0 : _a2.getContext) == null ? void 0 : _b2.call(_a2);
+          const headers = {
+            ...(liveCtx == null ? void 0 : liveCtx.getRequestHeaders) ? liveCtx.getRequestHeaders() : {},
+            "Content-Type": "application/json"
+          };
+          const resp = await fetch("/api/plugins/server-plugin-manager/probe", {
+            method: "POST",
+            headers,
+            body: "{}"
+          });
+          return resp.ok;
+        } catch {
+          return false;
+        }
+      })();
+      if (!isServerPluginManagerAvailable) {
+        console.warn("[ST API] Server Plugin Manager backend not available. Panel registration skipped.");
+        return;
+      }
+      await safeRegister("Server Plugin Manager Panel", () => window.ST_API.ui.registerSettingsPanel({
+        id: "st-api-wrapper.server_plugin_manager",
+        title: "后端插件管理",
+        target: "extensions_settings",
+        expanded: false,
+        order: 1,
+        content: {
+          kind: "render",
+          render: (container) => {
+            const mountPoint = document.createElement("div");
+            container.appendChild(mountPoint);
+            const app = createApp(ServerPluginManager);
             app.mount(mountPoint);
             return () => app.unmount();
           }

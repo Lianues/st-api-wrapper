@@ -11,6 +11,9 @@ import { registerRegexScriptApis } from './regexScript';
 import { registerCharacterApis } from './character';
 import { registerSlashCommandApis } from './slashCommand';
 import { registerAvatarApis } from './avatar';
+import { registerCommandApis } from './command';
+import { registerServerPluginApis } from './serverPlugin';
+import { registerServerApiApis } from './serverApi';
 
 export function registerAllApis(registry: ApiRegistry) {
   registerPromptApis(registry);
@@ -25,4 +28,7 @@ export function registerAllApis(registry: ApiRegistry) {
   registerCharacterApis(registry);
   registerSlashCommandApis(registry);
   registerAvatarApis(registry);
+  registerCommandApis(registry);
+  registerServerPluginApis(registry);
+  registerServerApiApis(registry);
 }

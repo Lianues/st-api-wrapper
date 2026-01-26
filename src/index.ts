@@ -1,5 +1,6 @@
 import { createApp } from 'vue';
 import App from './App.vue';
+import ServerPluginManager from './ServerPluginManager.vue';
 import { ApiRegistry } from './core/registry';
 import { registerAllApis } from './apis';
 
@@ -23,7 +24,7 @@ async function initSelfPanel() {
 
   const register = async () => {
     // 避免重复注册
-    if (isRegistered || document.getElementById('st-api-wrapper.settings_container')) return;
+    if (isRegistered || document.getElementById('st-api-wrapper_settings_container')) return;
     isRegistered = true;
 
     // 定义独立的注册函数，互不影响
@@ -48,6 +49,48 @@ async function initSelfPanel() {
           const mountPoint = document.createElement('div');
           container.appendChild(mountPoint);
           const app = createApp(App);
+          app.mount(mountPoint);
+          return () => app.unmount();
+        },
+      },
+    }));
+
+    // 2. 根据后端可用性决定是否注册“后端插件管理”面板
+    const isServerPluginManagerAvailable = await (async () => {
+      try {
+        const liveCtx = window.SillyTavern?.getContext?.();
+        const headers: Record<string, string> = {
+          ...(liveCtx?.getRequestHeaders ? liveCtx.getRequestHeaders() : {}),
+          'Content-Type': 'application/json',
+        };
+        const resp = await fetch('/api/plugins/server-plugin-manager/probe', {
+          method: 'POST',
+          headers,
+          body: '{}',
+        });
+        return resp.ok;
+      } catch {
+        return false;
+      }
+    })();
+
+    if (!isServerPluginManagerAvailable) {
+      console.warn('[ST API] Server Plugin Manager backend not available. Panel registration skipped.');
+      return;
+    }
+
+    await safeRegister('Server Plugin Manager Panel', () => window.ST_API.ui.registerSettingsPanel({
+      id: 'st-api-wrapper.server_plugin_manager',
+      title: '后端插件管理',
+      target: 'extensions_settings',
+      expanded: false,
+      order: 1,
+      content: {
+        kind: 'render',
+        render: (container: HTMLElement) => {
+          const mountPoint = document.createElement('div');
+          container.appendChild(mountPoint);
+          const app = createApp(ServerPluginManager);
           app.mount(mountPoint);
           return () => app.unmount();
         },

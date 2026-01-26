@@ -50,3 +50,112 @@ pre[data-v-5dcd21f5] {
   margin-top: 6px;
   color: #ff6b81;
 }
+
+.st-api-wrapper-panel[data-v-36d515f4] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.menu_button[data-v-36d515f4] {
+  white-space: nowrap;
+  word-break: keep-all;
+  writing-mode: horizontal-tb;
+}
+.actions[data-v-36d515f4] {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.status[data-v-36d515f4] {
+  opacity: 0.95;
+}
+.details[data-v-36d515f4] {
+  border-top: 1px solid var(--SmartThemeBorderColor);
+  padding-top: 10px;
+}
+.file-row[data-v-36d515f4] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hidden-file-input[data-v-36d515f4] {
+  display: none;
+}
+.file-name[data-v-36d515f4] {
+  font-family: monospace;
+  opacity: 0.9;
+  word-break: break-all;
+}
+.warn[data-v-36d515f4] {
+  margin-top: 6px;
+  color: #ffa502;
+}
+.error[data-v-36d515f4] {
+  margin-top: 6px;
+  color: #ff6b81;
+}
+.muted[data-v-36d515f4] {
+  opacity: 0.75;
+}
+.form[data-v-36d515f4] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.row[data-v-36d515f4] {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.field[data-v-36d515f4] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 260px;
+  flex: 1;
+}
+.field.checkbox[data-v-36d515f4] {
+  min-width: 220px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.label[data-v-36d515f4] {
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+.text[data-v-36d515f4] {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--SmartThemeBorderColor);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+}
+.table-wrap[data-v-36d515f4] {
+  overflow: auto;
+  margin-top: 8px;
+}
+.table[data-v-36d515f4] {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th[data-v-36d515f4],
+.table td[data-v-36d515f4] {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--SmartThemeBorderColor);
+  vertical-align: top;
+}
+.danger[data-v-36d515f4] {
+  background: rgba(255, 0, 0, 0.08);
+}
+.json[data-v-36d515f4] {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--SmartThemeBorderColor);
+  background: rgba(255, 255, 255, 0.04);
+}
