@@ -2814,11 +2814,11 @@ var __publicField = (obj, key, value) => {
     if (created) {
       callHook(created, instance, "c");
     }
-    function registerLifecycleHook(register, hook) {
+    function registerLifecycleHook(register2, hook) {
       if (isArray(hook)) {
-        hook.forEach((_hook) => register(_hook.bind(publicThis)));
+        hook.forEach((_hook) => register2(_hook.bind(publicThis)));
       } else if (hook) {
-        register(hook.bind(publicThis));
+        register2(hook.bind(publicThis));
       }
     }
     registerLifecycleHook(onBeforeMount, beforeMount);
@@ -7171,8 +7171,8 @@ var __publicField = (obj, key, value) => {
       };
     }
   });
-  const ServerPluginManager_vue_vue_type_style_index_0_scoped_36d515f4_lang = "";
-  const ServerPluginManager = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-36d515f4"]]);
+  const ServerPluginManager_vue_vue_type_style_index_0_scoped_b8c32b79_lang = "";
+  const ServerPluginManager = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-b8c32b79"]]);
   const _hoisted_1 = { class: "st-api-wrapper-panel" };
   const _hoisted_2 = { class: "actions flex-container" };
   const _hoisted_3 = ["disabled"];
@@ -8963,7 +8963,7 @@ var __publicField = (obj, key, value) => {
       mimeType: blob.type
     };
   }
-  async function list$7(input) {
+  async function list$8(input) {
     const ctx = window.SillyTavern.getContext();
     let targetChName = input.chName || "uploads";
     if (input.useCharacterDir) {
@@ -9009,7 +9009,7 @@ var __publicField = (obj, key, value) => {
       }
       return { success: true };
     }
-    const { files } = await list$7({
+    const { files } = await list$8({
       chName: input.chName,
       useCharacterDir: input.useCharacterDir
     });
@@ -9042,9 +9042,9 @@ var __publicField = (obj, key, value) => {
     name: "get",
     handler: get$7
   };
-  const listEndpoint$5 = {
+  const listEndpoint$6 = {
     name: "list",
-    handler: list$7
+    handler: list$8
   };
   const deleteEndpoint$4 = {
     name: "delete",
@@ -9052,7 +9052,7 @@ var __publicField = (obj, key, value) => {
   };
   const fileModuleDefinition = {
     namespace: "file",
-    endpoints: [uploadEndpoint, getEndpoint$5, listEndpoint$5, deleteEndpoint$4]
+    endpoints: [uploadEndpoint, getEndpoint$5, listEndpoint$6, deleteEndpoint$4]
   };
   function registerFileApis(registry2) {
     registry2.registerModule(fileModuleDefinition);
@@ -10327,7 +10327,7 @@ var __publicField = (obj, key, value) => {
   function registerHooksApis(registry2) {
     registry2.registerModule(hooksModuleDefinition);
   }
-  async function list$6(input) {
+  async function list$7(input) {
     const ctx = window.SillyTavern.getContext();
     const rawChat = ctx.chat || [];
     const messages = await normalizeChatMessages(rawChat, {
@@ -10495,9 +10495,9 @@ var __publicField = (obj, key, value) => {
     name: "get",
     handler: get$6
   };
-  const listEndpoint$4 = {
+  const listEndpoint$5 = {
     name: "list",
-    handler: list$6
+    handler: list$7
   };
   const createEndpoint$2 = {
     name: "create",
@@ -10513,7 +10513,7 @@ var __publicField = (obj, key, value) => {
   };
   const chatHistoryModuleDefinition = {
     namespace: "chatHistory",
-    endpoints: [getEndpoint$4, listEndpoint$4, createEndpoint$2, updateEndpoint$3, deleteEndpoint$3]
+    endpoints: [getEndpoint$4, listEndpoint$5, createEndpoint$2, updateEndpoint$3, deleteEndpoint$3]
   };
   function registerChatHistoryApis(registry2) {
     registry2.registerModule(chatHistoryModuleDefinition);
@@ -10880,7 +10880,7 @@ var __publicField = (obj, key, value) => {
     }
     return { preset: null };
   }
-  function list$5() {
+  function list$6() {
     const presetManager = getPresetManager();
     const active = presetManager.getSelectedPresetName() || "";
     return { presets: getAllPresetsDetail(), active };
@@ -11024,9 +11024,9 @@ var __publicField = (obj, key, value) => {
     name: "get",
     handler: get$5
   };
-  const listEndpoint$3 = {
+  const listEndpoint$4 = {
     name: "list",
-    handler: list$5
+    handler: list$6
   };
   const createEndpoint$1 = {
     name: "create",
@@ -11060,7 +11060,7 @@ var __publicField = (obj, key, value) => {
     namespace: "preset",
     endpoints: [
       getEndpoint$3,
-      listEndpoint$3,
+      listEndpoint$4,
       createEndpoint$1,
       updateEndpoint$2,
       deleteEndpoint$2,
@@ -11717,12 +11717,12 @@ var __publicField = (obj, key, value) => {
   function registerWorldBookApis(registry2) {
     registry2.registerModule(worldBookModuleDefinition);
   }
-  function getContext$3() {
+  function getContext$4() {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
   function triggerRefresh() {
-    const ctx = getContext$3();
+    const ctx = getContext$4();
     if (!ctx)
       return;
     if (ctx.saveSettingsDebounced) {
@@ -11735,7 +11735,7 @@ var __publicField = (obj, key, value) => {
     }
   }
   async function get$4(input) {
-    const ctx = getContext$3();
+    const ctx = getContext$4();
     if (!ctx)
       throw new Error("SillyTavern context not available");
     const scope = (input == null ? void 0 : input.scope) || "local";
@@ -11745,9 +11745,9 @@ var __publicField = (obj, key, value) => {
     const value = ctx.variables[scope].get(name);
     return { value };
   }
-  async function list$4(input) {
+  async function list$5(input) {
     var _a;
-    const ctx = getContext$3();
+    const ctx = getContext$4();
     if (!ctx)
       throw new Error("SillyTavern context not available");
     const scope = (input == null ? void 0 : input.scope) || "local";
@@ -11758,7 +11758,7 @@ var __publicField = (obj, key, value) => {
     return { variables: { ...globals } };
   }
   async function set(input) {
-    const ctx = getContext$3();
+    const ctx = getContext$4();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -11767,7 +11767,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function deleteVariable(input) {
-    const ctx = getContext$3();
+    const ctx = getContext$4();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -11776,7 +11776,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function add$1(input) {
-    const ctx = getContext$3();
+    const ctx = getContext$4();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -11785,7 +11785,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function inc(input) {
-    const ctx = getContext$3();
+    const ctx = getContext$4();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -11794,7 +11794,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function dec(input) {
-    const ctx = getContext$3();
+    const ctx = getContext$4();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -11804,7 +11804,7 @@ var __publicField = (obj, key, value) => {
   }
   const endpoints$2 = [
     { name: "get", handler: get$4 },
-    { name: "list", handler: list$4 },
+    { name: "list", handler: list$5 },
     { name: "set", handler: set },
     { name: "delete", handler: deleteVariable },
     { name: "add", handler: add$1 },
@@ -11826,7 +11826,7 @@ var __publicField = (obj, key, value) => {
       return null;
     }
   }
-  async function list$3(input) {
+  async function list$4(input) {
     const includeGlobal = (input == null ? void 0 : input.includeGlobal) ?? true;
     const includeCharacter = (input == null ? void 0 : input.includeCharacter) ?? true;
     const includePreset = (input == null ? void 0 : input.includePreset) ?? true;
@@ -11874,7 +11874,7 @@ var __publicField = (obj, key, value) => {
     }
     return { regexScript: null, scope: null };
   }
-  async function process(input) {
+  async function process$1(input) {
     const engine = await importRegexEngine();
     if (!engine)
       return { text: input.text };
@@ -12015,13 +12015,13 @@ var __publicField = (obj, key, value) => {
     name: "get",
     handler: get$3
   };
-  const listEndpoint$2 = {
+  const listEndpoint$3 = {
     name: "list",
-    handler: list$3
+    handler: list$4
   };
-  const processEndpoint = {
+  const processEndpoint$1 = {
     name: "process",
-    handler: process
+    handler: process$1
   };
   const runEndpoint = {
     name: "run",
@@ -12041,10 +12041,516 @@ var __publicField = (obj, key, value) => {
   };
   const regexScriptModuleDefinition = {
     namespace: "regexScript",
-    endpoints: [getEndpoint$2, listEndpoint$2, processEndpoint, runEndpoint, createEndpoint, updateEndpoint$1, deleteEndpoint$1]
+    endpoints: [getEndpoint$2, listEndpoint$3, processEndpoint$1, runEndpoint, createEndpoint, updateEndpoint$1, deleteEndpoint$1]
   };
   function registerRegexScriptApis(registry2) {
     registry2.registerModule(regexScriptModuleDefinition);
+  }
+  const registeredByPrimary = /* @__PURE__ */ new Map();
+  const nameToPrimary = /* @__PURE__ */ new Map();
+  const legacyEnvByNonce = /* @__PURE__ */ new Map();
+  function getContext$3() {
+    var _a, _b;
+    return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
+  }
+  function normalizeName(name) {
+    return String(name ?? "").trim();
+  }
+  function normalizeAliasNames(aliases) {
+    if (!Array.isArray(aliases))
+      return [];
+    const list2 = aliases.map((a) => a ? String(a.alias ?? "").trim() : "").filter(Boolean);
+    return Array.from(new Set(list2));
+  }
+  function isPromiseLike(x) {
+    return !!x && (typeof x === "object" || typeof x === "function") && typeof x.then === "function";
+  }
+  async function importLegacyMacrosModule() {
+    try {
+      return await eval('import("/scripts/macros.js")');
+    } catch (e) {
+      console.warn("[ST API] Legacy macros module import failed", e);
+      return null;
+    }
+  }
+  async function getLegacyMacroApi(ctx) {
+    const api = {};
+    if (typeof (ctx == null ? void 0 : ctx.registerMacro) === "function")
+      api.register = ctx.registerMacro.bind(ctx);
+    if (typeof (ctx == null ? void 0 : ctx.unregisterMacro) === "function")
+      api.unregister = ctx.unregisterMacro.bind(ctx);
+    const mod = await importLegacyMacrosModule();
+    const MacrosParser = mod == null ? void 0 : mod.MacrosParser;
+    if (MacrosParser && typeof MacrosParser.has === "function") {
+      api.has = (key) => {
+        try {
+          return !!MacrosParser.has(key);
+        } catch {
+          return false;
+        }
+      };
+      if (!api.register && typeof MacrosParser.registerMacro === "function") {
+        api.register = (key, value, description) => MacrosParser.registerMacro(key, value, description);
+      }
+      if (!api.unregister && typeof MacrosParser.unregisterMacro === "function") {
+        api.unregister = (key) => MacrosParser.unregisterMacro(key);
+      }
+    }
+    return api;
+  }
+  function normalizeMacroResult(ctx, value) {
+    var _a, _b;
+    const normalizer = (_b = (_a = ctx == null ? void 0 : ctx.macros) == null ? void 0 : _a.engine) == null ? void 0 : _b.normalizeMacroResult;
+    if (typeof normalizer === "function") {
+      try {
+        return normalizer.call(ctx.macros.engine, value);
+      } catch {
+      }
+    }
+    if (value === null || value === void 0)
+      return "";
+    if (value instanceof Date)
+      return value.toISOString();
+    if (typeof value === "object" || Array.isArray(value)) {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    }
+    return String(value);
+  }
+  function isLegacyCompatible(options) {
+    const unnamed = options == null ? void 0 : options.unnamedArgs;
+    const list2 = options == null ? void 0 : options.list;
+    const unnamedOk = unnamed === void 0 || unnamed === null || unnamed === 0 || Array.isArray(unnamed) && unnamed.length === 0;
+    const listOk = !list2;
+    return unnamedOk && listOk;
+  }
+  function makeLegacyValueFactory(ctx, invokedName, userHandler) {
+    return (nonce) => {
+      var _a;
+      try {
+        const key = typeof nonce === "string" ? nonce : "";
+        let cached = key ? legacyEnvByNonce.get(key) : void 0;
+        const now = Date.now();
+        if (!cached || now - cached.ts > 3e4) {
+          const envBuilder = (_a = ctx == null ? void 0 : ctx.macros) == null ? void 0 : _a.envBuilder;
+          const env2 = (envBuilder == null ? void 0 : envBuilder.buildFromRawEnv) ? envBuilder.buildFromRawEnv({
+            content: "",
+            replaceCharacterCard: true,
+            dynamicMacros: {},
+            postProcessFn: (x) => x
+          }) : {};
+          if (env2 && typeof env2 === "object") {
+            env2.extra = env2.extra || {};
+            env2.extra.st_api_nonce = key;
+          }
+          cached = { env: env2, ts: now };
+          if (key) {
+            legacyEnvByNonce.set(key, cached);
+            if (legacyEnvByNonce.size > 64) {
+              const firstKey = legacyEnvByNonce.keys().next().value;
+              if (firstKey)
+                legacyEnvByNonce.delete(firstKey);
+            }
+          }
+        }
+        const execCtx = {
+          name: invokedName,
+          args: [],
+          unnamedArgs: [],
+          list: null,
+          namedArgs: null,
+          raw: invokedName,
+          env: cached.env,
+          cstNode: null,
+          range: null,
+          normalize: (v) => normalizeMacroResult(ctx, v),
+          nonce: key
+        };
+        const result = userHandler(execCtx);
+        if (isPromiseLike(result))
+          return "";
+        return normalizeMacroResult(ctx, result);
+      } catch (e) {
+        console.warn(`[ST API] Legacy macro "${invokedName}" failed; returning empty string.`, e);
+        return "";
+      }
+    };
+  }
+  function sanitizeRegisterOptions(options) {
+    const category = typeof options.category === "string" && options.category.trim() ? options.category.trim() : "custom";
+    return {
+      aliases: options.aliases,
+      category,
+      unnamedArgs: options.unnamedArgs,
+      list: options.list,
+      strictArgs: options.strictArgs,
+      description: options.description ?? "",
+      returns: options.returns,
+      returnType: options.returnType,
+      displayOverride: options.displayOverride,
+      exampleUsage: options.exampleUsage,
+      handler: options.handler
+    };
+  }
+  async function register(input) {
+    var _a, _b, _c, _d, _e, _f;
+    const name = normalizeName(input == null ? void 0 : input.name);
+    try {
+      const ctx = getContext$3();
+      if (!ctx) {
+        return { ok: false, name, registeredNames: [], error: "SillyTavern context not available" };
+      }
+      const registry2 = (_a = ctx.macros) == null ? void 0 : _a.registry;
+      if (!(registry2 == null ? void 0 : registry2.registerMacro)) {
+        return { ok: false, name, registeredNames: [], error: "Macro registry not available in SillyTavern context" };
+      }
+      if (!name) {
+        return { ok: false, name: "", registeredNames: [], error: "name is required" };
+      }
+      if (!(input == null ? void 0 : input.options) || typeof input.options !== "object") {
+        return { ok: false, name, registeredNames: [], error: "options is required" };
+      }
+      if (typeof input.options.handler !== "function") {
+        return { ok: false, name, registeredNames: [], error: "options.handler must be a function" };
+      }
+      const allowOverwrite = !!input.allowOverwrite;
+      const existing = registeredByPrimary.get(name);
+      let experimentalOn = !!((_b = ctx == null ? void 0 : ctx.powerUserSettings) == null ? void 0 : _b.experimental_macro_engine);
+      const ensureExperimental = input.ensureExperimentalMacroEngine !== false;
+      if (!experimentalOn && ensureExperimental) {
+        try {
+          if (ctx.powerUserSettings && typeof ctx.powerUserSettings === "object") {
+            ctx.powerUserSettings.experimental_macro_engine = true;
+          } else if (window.power_user && typeof window.power_user === "object") {
+            window.power_user.experimental_macro_engine = true;
+          }
+          (_c = ctx.saveSettingsDebounced) == null ? void 0 : _c.call(ctx);
+          (_f = (_d = ctx.eventSource) == null ? void 0 : _d.emit) == null ? void 0 : _f.call(_d, (_e = ctx.eventTypes) == null ? void 0 : _e.SETTINGS_LOADED);
+          experimentalOn = true;
+        } catch (e) {
+          console.warn("[ST API] Failed to enable experimental_macro_engine automatically", e);
+        }
+      }
+      const legacyDesired = input.registerLegacy === void 0 ? !!(existing == null ? void 0 : existing.engines.legacy) : !!input.registerLegacy;
+      const legacyEnabledNow = legacyDesired && !experimentalOn;
+      const aliasNames = normalizeAliasNames(input.options.aliases);
+      const allNames = Array.from(/* @__PURE__ */ new Set([name, ...aliasNames]));
+      if (!allowOverwrite && typeof registry2.hasMacro === "function") {
+        const conflicts = allNames.filter((n) => {
+          if (!registry2.hasMacro(n))
+            return false;
+          const owner = nameToPrimary.get(n);
+          return owner !== name;
+        });
+        if (conflicts.length > 0) {
+          return {
+            ok: false,
+            name,
+            registeredNames: [],
+            error: `Macro name already registered: ${conflicts.join(", ")}`
+          };
+        }
+      }
+      if (legacyDesired && experimentalOn) {
+        console.warn(
+          `[ST API] registerLegacy requested for macro "${name}", but experimental_macro_engine is enabled. Skipping legacy registration to avoid overriding the macro definition.`
+        );
+      }
+      if (legacyEnabledNow && !isLegacyCompatible(input.options)) {
+        return {
+          ok: false,
+          name,
+          registeredNames: [],
+          error: "registerLegacy only supports 0-arg macros (use {{name}}). This macro declares unnamedArgs/list."
+        };
+      }
+      const legacyApi = !experimentalOn && (legacyEnabledNow || !!(existing == null ? void 0 : existing.engines.legacy)) ? await getLegacyMacroApi(ctx) : null;
+      if (legacyEnabledNow) {
+        if (!(legacyApi == null ? void 0 : legacyApi.register) || !(legacyApi == null ? void 0 : legacyApi.unregister)) {
+          return {
+            ok: false,
+            name,
+            registeredNames: [],
+            error: "Legacy macro API not available (cannot registerLegacy in this SillyTavern version)."
+          };
+        }
+        if (!allowOverwrite && typeof legacyApi.has === "function") {
+          const conflictsLegacy = allNames.filter((n) => {
+            var _a2;
+            return ((_a2 = legacyApi.has) == null ? void 0 : _a2.call(legacyApi, n)) && nameToPrimary.get(n) !== name;
+          });
+          if (conflictsLegacy.length > 0) {
+            return {
+              ok: false,
+              name,
+              registeredNames: [],
+              error: `Legacy macro name already registered: ${conflictsLegacy.join(", ")}`
+            };
+          }
+        }
+      }
+      const sanitized = sanitizeRegisterOptions(input.options);
+      const userHandler = sanitized.handler;
+      const wrappedHandler = (execCtx) => {
+        try {
+          const result = userHandler(execCtx);
+          if (isPromiseLike(result)) {
+            console.warn(
+              `[ST API] Macro "${name}" handler returned a Promise. Async macros are not supported; returning empty string.`
+            );
+            return "";
+          }
+          return result;
+        } catch (e) {
+          console.warn(`[ST API] Macro "${name}" handler threw an error; returning empty string.`, e);
+          return "";
+        }
+      };
+      const def2 = registry2.registerMacro(name, {
+        ...sanitized,
+        handler: wrappedHandler
+      });
+      if (!def2) {
+        return { ok: false, name, registeredNames: [], error: "Macro registration failed (see console for details)" };
+      }
+      const engines = ["macroEngine"];
+      if (legacyEnabledNow && (legacyApi == null ? void 0 : legacyApi.register)) {
+        const desc = typeof sanitized.description === "string" ? sanitized.description : "";
+        for (const key of allNames) {
+          legacyApi.register(key, makeLegacyValueFactory(ctx, key, wrappedHandler), desc);
+        }
+        engines.push("legacy");
+      } else if (!experimentalOn && (existing == null ? void 0 : existing.engines.legacy) && (legacyApi == null ? void 0 : legacyApi.unregister) && input.registerLegacy === false) {
+        for (const key of existing.names) {
+          try {
+            legacyApi.unregister(key);
+          } catch (e) {
+            console.warn("[ST API] legacy unregister failed:", key, e);
+          }
+        }
+      }
+      if (existing) {
+        const stale = existing.names.filter((n) => !allNames.includes(n));
+        for (const staleName of stale) {
+          try {
+            registry2.unregisterMacro(staleName);
+          } catch (e) {
+            console.warn("[ST API] unregister stale macro alias failed:", staleName, e);
+          }
+          if (!experimentalOn && existing.engines.legacy && (legacyApi == null ? void 0 : legacyApi.unregister)) {
+            try {
+              legacyApi.unregister(staleName);
+            } catch (e) {
+              console.warn("[ST API] unregister stale legacy macro failed:", staleName, e);
+            }
+          }
+          if (nameToPrimary.get(staleName) === name)
+            nameToPrimary.delete(staleName);
+        }
+      }
+      const meta = {
+        primary: name,
+        names: allNames,
+        registeredAt: Date.now(),
+        engines: {
+          macroEngine: true,
+          legacy: legacyEnabledNow
+        }
+      };
+      registeredByPrimary.set(name, meta);
+      for (const n of allNames)
+        nameToPrimary.set(n, name);
+      return { ok: true, name, registeredNames: allNames, engines };
+    } catch (e) {
+      return {
+        ok: false,
+        name,
+        registeredNames: [],
+        error: e instanceof Error ? e.message : String(e)
+      };
+    }
+  }
+  async function unregister(input) {
+    var _a, _b;
+    try {
+      const ctx = getContext$3();
+      if (!ctx)
+        return { ok: false, removed: [], error: "SillyTavern context not available" };
+      const registry2 = (_a = ctx.macros) == null ? void 0 : _a.registry;
+      if (!(registry2 == null ? void 0 : registry2.unregisterMacro)) {
+        return { ok: false, removed: [], error: "Macro registry not available in SillyTavern context" };
+      }
+      const name = normalizeName(input == null ? void 0 : input.name);
+      if (!name)
+        return { ok: false, removed: [], error: "name is required" };
+      const force = !!input.force;
+      const primary = nameToPrimary.get(name) ?? name;
+      const meta = registeredByPrimary.get(primary);
+      const experimentalOn = !!((_b = ctx == null ? void 0 : ctx.powerUserSettings) == null ? void 0 : _b.experimental_macro_engine);
+      const legacyApi = !experimentalOn && ((meta == null ? void 0 : meta.engines.legacy) || force) ? await getLegacyMacroApi(ctx) : null;
+      let targets = [];
+      if (meta) {
+        targets = meta.names;
+      } else if (force) {
+        targets = [name];
+      } else {
+        return { ok: false, removed: [], error: `Macro not registered by ST_API: ${name}` };
+      }
+      const removedSet = /* @__PURE__ */ new Set();
+      for (const n of targets) {
+        try {
+          const didRemove = registry2.unregisterMacro(n);
+          if (didRemove)
+            removedSet.add(n);
+        } catch (e) {
+          console.warn("[ST API] unregister macro failed:", n, e);
+        }
+        if (!experimentalOn && (legacyApi == null ? void 0 : legacyApi.unregister)) {
+          try {
+            legacyApi.unregister(n);
+            removedSet.add(n);
+          } catch (e) {
+            console.warn("[ST API] legacy unregister macro failed:", n, e);
+          }
+        }
+      }
+      if (meta) {
+        registeredByPrimary.delete(primary);
+        for (const n of meta.names) {
+          if (nameToPrimary.get(n) === primary)
+            nameToPrimary.delete(n);
+        }
+      } else {
+        if (nameToPrimary.get(name) === primary)
+          nameToPrimary.delete(name);
+      }
+      const removed = Array.from(removedSet);
+      if (removed.length === 0) {
+        return { ok: false, removed: [], error: `Macro not found: ${name}` };
+      }
+      return { ok: true, removed };
+    } catch (e) {
+      return { ok: false, removed: [], error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+  async function list$3(input) {
+    var _a;
+    const ctx = getContext$3();
+    const registry2 = (_a = ctx == null ? void 0 : ctx.macros) == null ? void 0 : _a.registry;
+    if (!(registry2 == null ? void 0 : registry2.getAllMacros))
+      return { macros: [] };
+    const excludeAliases = !!(input == null ? void 0 : input.excludeAliases);
+    const excludeHiddenAliases = !!(input == null ? void 0 : input.excludeHiddenAliases);
+    const onlyRegisteredByWrapper = !!(input == null ? void 0 : input.onlyRegisteredByWrapper);
+    const defs = registry2.getAllMacros({ excludeAliases, excludeHiddenAliases }) || [];
+    const macros = defs.map((d) => {
+      const registeredByWrapper = nameToPrimary.has(String((d == null ? void 0 : d.name) ?? ""));
+      const item = {
+        name: String((d == null ? void 0 : d.name) ?? ""),
+        aliases: Array.isArray(d == null ? void 0 : d.aliases) ? d.aliases.map((a) => ({
+          alias: String((a == null ? void 0 : a.alias) ?? ""),
+          visible: (a == null ? void 0 : a.visible) !== false
+        })) : [],
+        category: String((d == null ? void 0 : d.category) ?? ""),
+        minArgs: Number((d == null ? void 0 : d.minArgs) ?? 0),
+        maxArgs: Number((d == null ? void 0 : d.maxArgs) ?? 0),
+        unnamedArgDefs: Array.isArray(d == null ? void 0 : d.unnamedArgDefs) ? d.unnamedArgDefs : [],
+        list: (d == null ? void 0 : d.list) ? { min: Number(d.list.min ?? 0), max: d.list.max ?? null } : null,
+        strictArgs: (d == null ? void 0 : d.strictArgs) !== false,
+        description: String((d == null ? void 0 : d.description) ?? ""),
+        returns: (d == null ? void 0 : d.returns) ?? null,
+        returnType: (d == null ? void 0 : d.returnType) ?? "string",
+        displayOverride: (d == null ? void 0 : d.displayOverride) ?? null,
+        exampleUsage: Array.isArray(d == null ? void 0 : d.exampleUsage) ? d.exampleUsage : [],
+        source: d == null ? void 0 : d.source,
+        aliasOf: (d == null ? void 0 : d.aliasOf) ?? null,
+        aliasVisible: (d == null ? void 0 : d.aliasVisible) ?? null,
+        registeredByWrapper
+      };
+      return item;
+    }).filter((d) => onlyRegisteredByWrapper ? d.registeredByWrapper : true);
+    return { macros };
+  }
+  async function process(input) {
+    var _a, _b, _c, _d;
+    try {
+      const ctx = getContext$3();
+      if (!ctx)
+        return { ok: false, text: String((input == null ? void 0 : input.text) ?? ""), engine: "substituteParams", error: "SillyTavern context not available" };
+      const text = String((input == null ? void 0 : input.text) ?? "");
+      const options = (input == null ? void 0 : input.options) ?? {};
+      const forceNewEngine = !!(input == null ? void 0 : input.forceNewEngine);
+      const dynamicMacros = options.dynamicMacros ?? {};
+      const postProcessFn = options.postProcessFn ?? ((x) => x);
+      const hasFunctionDynamicMacro = dynamicMacros && typeof dynamicMacros === "object" && Object.values(dynamicMacros).some((v) => typeof v === "function");
+      const canUseMacroEngine = !!((_b = (_a = ctx.macros) == null ? void 0 : _a.envBuilder) == null ? void 0 : _b.buildFromRawEnv) && !!((_d = (_c = ctx.macros) == null ? void 0 : _c.engine) == null ? void 0 : _d.evaluate);
+      const shouldUseMacroEngine = (forceNewEngine || hasFunctionDynamicMacro) && canUseMacroEngine;
+      if ((forceNewEngine || hasFunctionDynamicMacro) && !canUseMacroEngine) {
+        return {
+          ok: false,
+          text,
+          engine: "substituteParams",
+          error: "MacroEngine not available in SillyTavern context (cannot process with forceNewEngine / function dynamicMacros)."
+        };
+      }
+      if (shouldUseMacroEngine) {
+        const rawEnv = {
+          content: text,
+          name1Override: options.name1Override,
+          name2Override: options.name2Override,
+          original: options.original,
+          groupOverride: options.groupOverride,
+          replaceCharacterCard: options.replaceCharacterCard ?? true,
+          dynamicMacros,
+          postProcessFn
+        };
+        const env2 = ctx.macros.envBuilder.buildFromRawEnv(rawEnv);
+        const result2 = ctx.macros.engine.evaluate(text, env2);
+        return { ok: true, text: String(result2 ?? ""), engine: "macroEngine" };
+      }
+      if (!ctx.substituteParams) {
+        return { ok: false, text, engine: "substituteParams", error: "substituteParams not available in SillyTavern context" };
+      }
+      const result = ctx.substituteParams(text, {
+        ...options,
+        dynamicMacros,
+        postProcessFn
+      });
+      return { ok: true, text: String(result ?? ""), engine: "substituteParams" };
+    } catch (e) {
+      return {
+        ok: false,
+        text: String((input == null ? void 0 : input.text) ?? ""),
+        engine: "substituteParams",
+        error: e instanceof Error ? e.message : String(e)
+      };
+    }
+  }
+  const registerEndpoint = {
+    name: "register",
+    handler: register
+  };
+  const unregisterEndpoint = {
+    name: "unregister",
+    handler: unregister
+  };
+  const listEndpoint$2 = {
+    name: "list",
+    handler: list$3
+  };
+  const processEndpoint = {
+    name: "process",
+    handler: process
+  };
+  const macrosModuleDefinition = {
+    namespace: "macros",
+    endpoints: [registerEndpoint, unregisterEndpoint, listEndpoint$2, processEndpoint]
+  };
+  function registerMacrosApis(registry2) {
+    registry2.registerModule(macrosModuleDefinition);
   }
   function getSTContext() {
     var _a, _b;
@@ -12853,7 +13359,7 @@ var __publicField = (obj, key, value) => {
   }
   function registerServerApiApis(registry2) {
     const dynamic = /* @__PURE__ */ new Map();
-    const register = {
+    const register2 = {
       name: "register",
       handler: async (input) => {
         const namespace = String((input == null ? void 0 : input.namespace) ?? "").trim();
@@ -12921,7 +13427,7 @@ var __publicField = (obj, key, value) => {
         };
       }
     };
-    const unregister = {
+    const unregister2 = {
       name: "unregister",
       handler: async (input) => {
         const fullName = String((input == null ? void 0 : input.fullName) ?? "").trim() || `${String((input == null ? void 0 : input.namespace) ?? "").trim()}.${String((input == null ? void 0 : input.name) ?? "").trim()}`;
@@ -12934,7 +13440,7 @@ var __publicField = (obj, key, value) => {
     };
     const moduleDef = {
       namespace: "serverApi",
-      endpoints: [register, list2, unregister]
+      endpoints: [register2, list2, unregister2]
     };
     registry2.registerModule(moduleDef);
   }
@@ -12948,6 +13454,7 @@ var __publicField = (obj, key, value) => {
     registerWorldBookApis(registry2);
     registerVariablesApis(registry2);
     registerRegexScriptApis(registry2);
+    registerMacrosApis(registry2);
     registerCharacterApis(registry2);
     registerSlashCommandApis(registry2);
     registerAvatarApis(registry2);
@@ -12966,7 +13473,7 @@ var __publicField = (obj, key, value) => {
       return;
     const { eventSource, event_types } = ctx;
     let isRegistered = false;
-    const register = async () => {
+    const register2 = async () => {
       if (isRegistered || document.getElementById("st-api-wrapper_settings_container"))
         return;
       isRegistered = true;
@@ -13057,8 +13564,8 @@ var __publicField = (obj, key, value) => {
         }));
       }
     };
-    eventSource.on(event_types.APP_READY, register);
-    register();
+    eventSource.on(event_types.APP_READY, register2);
+    register2();
   }
   initSelfPanel();
 })();

@@ -8,6 +8,7 @@ import { registerPresetApis } from './preset';
 import { registerWorldBookApis } from './worldBook';
 import { registerVariablesApis } from './variables';
 import { registerRegexScriptApis } from './regexScript';
+import { registerMacrosApis } from './macros';
 import { registerCharacterApis } from './character';
 import { registerSlashCommandApis } from './slashCommand';
 import { registerAvatarApis } from './avatar';
@@ -25,6 +26,7 @@ export function registerAllApis(registry: ApiRegistry) {
   registerWorldBookApis(registry);
   registerVariablesApis(registry);
   registerRegexScriptApis(registry);
+  registerMacrosApis(registry);
   registerCharacterApis(registry);
   registerSlashCommandApis(registry);
   registerAvatarApis(registry);
