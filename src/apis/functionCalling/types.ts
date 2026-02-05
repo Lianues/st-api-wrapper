@@ -5,6 +5,19 @@ export interface IsSupportedOutput {
   supported: boolean;
 }
 
+export interface SetEnabledInput {
+  /** 是否开启 */
+  enabled: boolean;
+}
+
+export interface SetEnabledOutput {
+  ok: boolean;
+  enabled: boolean;
+  /** 修改后再次探测：是否支持工具调用（受模型/后处理/主 API 等影响） */
+  supported: boolean;
+  error?: string;
+}
+
 export interface RegisterFunctionToolInput {
   /**
    * 工具内部名称（必须唯一）

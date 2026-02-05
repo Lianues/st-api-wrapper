@@ -9,6 +9,8 @@ import type {
   ListFunctionToolsOutput,
   RegisterFunctionToolInput,
   RegisterFunctionToolOutput,
+  SetEnabledInput,
+  SetEnabledOutput,
   UnregisterFunctionToolInput,
   UnregisterFunctionToolOutput,
 } from './types';
@@ -17,6 +19,11 @@ import * as impl from './impl';
 const isSupportedEndpoint: EndpointDefinition<void, IsSupportedOutput> = {
   name: 'isSupported',
   handler: impl.isSupported,
+};
+
+const setEnabledEndpoint: EndpointDefinition<SetEnabledInput, SetEnabledOutput> = {
+  name: 'setEnabled',
+  handler: impl.setEnabled,
 };
 
 const registerEndpoint: EndpointDefinition<RegisterFunctionToolInput, RegisterFunctionToolOutput> = {
@@ -46,5 +53,13 @@ const invokeEndpoint: EndpointDefinition<InvokeFunctionToolInput, InvokeFunction
 
 export const functionCallingModuleDefinition: ApiModuleDefinition = {
   namespace: 'functionCalling',
-  endpoints: [isSupportedEndpoint, registerEndpoint, unregisterEndpoint, listEndpoint, getEndpoint, invokeEndpoint],
+  endpoints: [
+    isSupportedEndpoint,
+    setEnabledEndpoint,
+    registerEndpoint,
+    unregisterEndpoint,
+    listEndpoint,
+    getEndpoint,
+    invokeEndpoint,
+  ],
 };

@@ -12,6 +12,10 @@ Function Calling（工具调用）相关 API。
 > 注意：工具调用是否可用，取决于你当前使用的模型/接口是否支持，以及用户是否在 UI 中开启了“Enable function calling”。
 > 你可以用 `functionCalling.isSupported()` 先做探测。
 
+另外，本命名空间还提供对开关的设置：
+
+- `functionCalling.setEnabled({ enabled: true/false })`：开启/关闭（直接修改 settings 并保存）
+
 本 wrapper 还会在内部记录“哪些工具是通过 `ST_API.functionCalling.register` 注册的”，用于：
 
 - `functionCalling.list({ onlyRegisteredByWrapper: true })`：只列出你自己注册的工具

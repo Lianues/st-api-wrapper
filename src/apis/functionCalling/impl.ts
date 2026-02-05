@@ -9,6 +9,8 @@ import type {
   ListFunctionToolsOutput,
   RegisterFunctionToolInput,
   RegisterFunctionToolOutput,
+  SetEnabledInput,
+  SetEnabledOutput,
   UnregisterFunctionToolInput,
   UnregisterFunctionToolOutput,
 } from './types';
@@ -80,6 +82,34 @@ export async function isSupported(): Promise<IsSupportedOutput> {
   const ctx = getContext();
   const supported = !!ctx?.isToolCallingSupported?.();
   return { supported };
+}
+
+export async function setEnabled(input: SetEnabledInput): Promise<SetEnabledOutput> {
+  const ctx = getContext();
+
+  try {
+    if (!ctx) {
+      return { ok: false, enabled: !!input?.enabled, supported: false, error: 'SillyTavern context not available' };
+    }
+
+    const enabled = !!input?.enabled;
+
+    // 直接修改 settings，并保存
+    if (ctx.chatCompletionSettings && typeof ctx.chatCompletionSettings === 'object') {
+      ctx.chatCompletionSettings.function_calling = enabled;
+    }
+    ctx.saveSettingsDebounced?.();
+
+    const supported = !!ctx?.isToolCallingSupported?.();
+    return { ok: true, enabled, supported };
+  } catch (e) {
+    return {
+      ok: false,
+      enabled: !!input?.enabled,
+      supported: !!ctx?.isToolCallingSupported?.(),
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
 }
 
 export async function register(input: RegisterFunctionToolInput): Promise<RegisterFunctionToolOutput> {

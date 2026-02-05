@@ -13497,6 +13497,29 @@
     const supported = !!((_a = ctx == null ? void 0 : ctx.isToolCallingSupported) == null ? void 0 : _a.call(ctx));
     return { supported };
   }
+  async function setEnabled(input) {
+    var _a, _b, _c;
+    const ctx = getContext();
+    try {
+      if (!ctx) {
+        return { ok: false, enabled: !!(input == null ? void 0 : input.enabled), supported: false, error: "SillyTavern context not available" };
+      }
+      const enabled = !!(input == null ? void 0 : input.enabled);
+      if (ctx.chatCompletionSettings && typeof ctx.chatCompletionSettings === "object") {
+        ctx.chatCompletionSettings.function_calling = enabled;
+      }
+      (_a = ctx.saveSettingsDebounced) == null ? void 0 : _a.call(ctx);
+      const supported = !!((_b = ctx == null ? void 0 : ctx.isToolCallingSupported) == null ? void 0 : _b.call(ctx));
+      return { ok: true, enabled, supported };
+    } catch (e) {
+      return {
+        ok: false,
+        enabled: !!(input == null ? void 0 : input.enabled),
+        supported: !!((_c = ctx == null ? void 0 : ctx.isToolCallingSupported) == null ? void 0 : _c.call(ctx)),
+        error: e instanceof Error ? e.message : String(e)
+      };
+    }
+  }
   async function register(input) {
     const ctx = getContext();
     const name = normalizeName(input == null ? void 0 : input.name);
@@ -13647,6 +13670,10 @@
     name: "isSupported",
     handler: isSupported
   };
+  const setEnabledEndpoint = {
+    name: "setEnabled",
+    handler: setEnabled
+  };
   const registerEndpoint = {
     name: "register",
     handler: register
@@ -13669,7 +13696,15 @@
   };
   const functionCallingModuleDefinition = {
     namespace: "functionCalling",
-    endpoints: [isSupportedEndpoint, registerEndpoint, unregisterEndpoint, listEndpoint, getEndpoint, invokeEndpoint]
+    endpoints: [
+      isSupportedEndpoint,
+      setEnabledEndpoint,
+      registerEndpoint,
+      unregisterEndpoint,
+      listEndpoint,
+      getEndpoint,
+      invokeEndpoint
+    ]
   };
   function registerFunctionCallingApis(registry2) {
     registry2.registerModule(functionCallingModuleDefinition);
