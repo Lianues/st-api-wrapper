@@ -15,6 +15,7 @@ import { registerAvatarApis } from './avatar';
 import { registerCommandApis } from './command';
 import { registerServerPluginApis } from './serverPlugin';
 import { registerServerApiApis } from './serverApi';
+import { registerFunctionCallingApis } from './functionCalling';
 
 export function registerAllApis(registry: ApiRegistry) {
   registerPromptApis(registry);
@@ -33,4 +34,5 @@ export function registerAllApis(registry: ApiRegistry) {
   registerCommandApis(registry);
   registerServerPluginApis(registry);
   registerServerApiApis(registry);
+  registerFunctionCallingApis(registry);
 }

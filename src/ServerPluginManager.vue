@@ -514,11 +514,13 @@ onMounted(() => {
 }
 
 .text {
+  width: 100%;
   padding: 6px 8px;
   border-radius: 6px;
   border: 1px solid var(--SmartThemeBorderColor);
   background: rgba(255, 255, 255, 0.05);
   color: inherit;
+  box-sizing: border-box;
 }
 
 .table-wrap {
@@ -554,3 +556,33 @@ onMounted(() => {
 }
 </style>
 
+<!--
+  Global styles for panels registered via ST_API.ui.registerSettingsPanel({ content.kind: 'render' }).
+  Those panels inject raw DOM that won't receive Vue SFC scoped attributes,
+  so scoped styles like `.text` won't apply and inputs may fallback to pure-white default styles.
+
+  We align the default input styling with the "direct 命令过滤模式（commandListMode）" editor look
+  from CommandExecSandbox.vue (.text).
+-->
+<style>
+.st-api-panel-wrapper .inline-drawer-content input[type="text"],
+.st-api-panel-wrapper .inline-drawer-content input[type="number"],
+.st-api-panel-wrapper .inline-drawer-content input[type="password"],
+.st-api-panel-wrapper .inline-drawer-content textarea,
+.st-api-panel-wrapper .inline-drawer-content select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--SmartThemeBorderColor);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.st-api-panel-wrapper .inline-drawer-content input[type="text"]:focus,
+.st-api-panel-wrapper .inline-drawer-content input[type="number"]:focus,
+.st-api-panel-wrapper .inline-drawer-content input[type="password"]:focus,
+.st-api-panel-wrapper .inline-drawer-content textarea:focus,
+.st-api-panel-wrapper .inline-drawer-content select:focus {
+  outline: none;
+}
+</style>

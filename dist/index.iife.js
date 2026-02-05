@@ -1,9 +1,3 @@
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => {
-  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
 (function() {
   "use strict";
   /**
@@ -7171,8 +7165,9 @@ var __publicField = (obj, key, value) => {
       };
     }
   });
-  const ServerPluginManager_vue_vue_type_style_index_0_scoped_b8c32b79_lang = "";
-  const ServerPluginManager = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-b8c32b79"]]);
+  const ServerPluginManager_vue_vue_type_style_index_0_scoped_4da0615e_lang = "";
+  const ServerPluginManager_vue_vue_type_style_index_1_lang = "";
+  const ServerPluginManager = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-4da0615e"]]);
   const _hoisted_1 = { class: "st-api-wrapper-panel" };
   const _hoisted_2 = { class: "actions flex-container" };
   const _hoisted_3 = ["disabled"];
@@ -7748,8 +7743,8 @@ var __publicField = (obj, key, value) => {
   const CommandExecSandbox = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-4f9dbfcf"]]);
   class ApiRegistry {
     constructor() {
-      __publicField(this, "endpoints", /* @__PURE__ */ new Map());
-      __publicField(this, "apiTree", /* @__PURE__ */ Object.create(null));
+      this.endpoints = /* @__PURE__ */ new Map();
+      this.apiTree = /* @__PURE__ */ Object.create(null);
     }
     /**
      * Returns (and creates if missing) the namespace object stored inside apiTree.
@@ -8480,7 +8475,7 @@ var __publicField = (obj, key, value) => {
     });
     return false;
   }
-  async function get$8(input) {
+  async function get$9(input) {
     const ctx = window.SillyTavern.getContext();
     const { eventSource, event_types, generate: generate2, characterId } = ctx;
     const timeoutMs = (input == null ? void 0 : input.timeoutMs) ?? 8e3;
@@ -8887,9 +8882,9 @@ var __publicField = (obj, key, value) => {
       }
     }
   }
-  const getEndpoint$6 = {
+  const getEndpoint$7 = {
     name: "get",
-    handler: get$8
+    handler: get$9
   };
   const buildRequestEndpoint = {
     name: "buildRequest",
@@ -8901,7 +8896,7 @@ var __publicField = (obj, key, value) => {
   };
   const promptModuleDefinition = {
     namespace: "prompt",
-    endpoints: [getEndpoint$6, buildRequestEndpoint, generateEndpoint]
+    endpoints: [getEndpoint$7, buildRequestEndpoint, generateEndpoint]
   };
   function registerPromptApis(registry2) {
     registry2.registerModule(promptModuleDefinition);
@@ -8945,7 +8940,7 @@ var __publicField = (obj, key, value) => {
     }
     return { path };
   }
-  async function get$7(input) {
+  async function get$8(input) {
     const url = constructPath(input);
     const response = await fetch(url);
     if (!response.ok) {
@@ -8963,7 +8958,7 @@ var __publicField = (obj, key, value) => {
       mimeType: blob.type
     };
   }
-  async function list$8(input) {
+  async function list$9(input) {
     const ctx = window.SillyTavern.getContext();
     let targetChName = input.chName || "uploads";
     if (input.useCharacterDir) {
@@ -9009,7 +9004,7 @@ var __publicField = (obj, key, value) => {
       }
       return { success: true };
     }
-    const { files } = await list$8({
+    const { files } = await list$9({
       chName: input.chName,
       useCharacterDir: input.useCharacterDir
     });
@@ -9038,13 +9033,13 @@ var __publicField = (obj, key, value) => {
     name: "upload",
     handler: upload
   };
-  const getEndpoint$5 = {
+  const getEndpoint$6 = {
     name: "get",
-    handler: get$7
+    handler: get$8
   };
-  const listEndpoint$6 = {
+  const listEndpoint$7 = {
     name: "list",
-    handler: list$8
+    handler: list$9
   };
   const deleteEndpoint$4 = {
     name: "delete",
@@ -9052,7 +9047,7 @@ var __publicField = (obj, key, value) => {
   };
   const fileModuleDefinition = {
     namespace: "file",
-    endpoints: [uploadEndpoint, getEndpoint$5, listEndpoint$6, deleteEndpoint$4]
+    endpoints: [uploadEndpoint, getEndpoint$6, listEndpoint$7, deleteEndpoint$4]
   };
   function registerFileApis(registry2) {
     registry2.registerModule(fileModuleDefinition);
@@ -10327,7 +10322,7 @@ var __publicField = (obj, key, value) => {
   function registerHooksApis(registry2) {
     registry2.registerModule(hooksModuleDefinition);
   }
-  async function list$7(input) {
+  async function list$8(input) {
     const ctx = window.SillyTavern.getContext();
     const rawChat = ctx.chat || [];
     const messages = await normalizeChatMessages(rawChat, {
@@ -10341,7 +10336,7 @@ var __publicField = (obj, key, value) => {
       chatId: ctx.chatId
     };
   }
-  async function get$6(input) {
+  async function get$7(input) {
     const ctx = window.SillyTavern.getContext();
     const rawChat = ctx.chat || [];
     const index = input == null ? void 0 : input.index;
@@ -10491,13 +10486,13 @@ var __publicField = (obj, key, value) => {
     }
     return result;
   }
-  const getEndpoint$4 = {
+  const getEndpoint$5 = {
     name: "get",
-    handler: get$6
+    handler: get$7
   };
-  const listEndpoint$5 = {
+  const listEndpoint$6 = {
     name: "list",
-    handler: list$7
+    handler: list$8
   };
   const createEndpoint$2 = {
     name: "create",
@@ -10513,7 +10508,7 @@ var __publicField = (obj, key, value) => {
   };
   const chatHistoryModuleDefinition = {
     namespace: "chatHistory",
-    endpoints: [getEndpoint$4, listEndpoint$5, createEndpoint$2, updateEndpoint$3, deleteEndpoint$3]
+    endpoints: [getEndpoint$5, listEndpoint$6, createEndpoint$2, updateEndpoint$3, deleteEndpoint$3]
   };
   function registerChatHistoryApis(registry2) {
     registry2.registerModule(chatHistoryModuleDefinition);
@@ -10871,7 +10866,7 @@ var __publicField = (obj, key, value) => {
     }
     return results;
   }
-  function get$5(input) {
+  function get$6(input) {
     const presetManager = getPresetManager();
     const name = (input == null ? void 0 : input.name) || presetManager.getSelectedPresetName();
     const raw = getRawSettings(name);
@@ -10880,7 +10875,7 @@ var __publicField = (obj, key, value) => {
     }
     return { preset: null };
   }
-  function list$6() {
+  function list$7() {
     const presetManager = getPresetManager();
     const active = presetManager.getSelectedPresetName() || "";
     return { presets: getAllPresetsDetail(), active };
@@ -11020,13 +11015,13 @@ var __publicField = (obj, key, value) => {
     await presetManager.savePreset(targetName, rawToSave);
     return { success: true };
   }
-  const getEndpoint$3 = {
+  const getEndpoint$4 = {
     name: "get",
-    handler: get$5
+    handler: get$6
   };
-  const listEndpoint$4 = {
+  const listEndpoint$5 = {
     name: "list",
-    handler: list$6
+    handler: list$7
   };
   const createEndpoint$1 = {
     name: "create",
@@ -11059,8 +11054,8 @@ var __publicField = (obj, key, value) => {
   const presetModuleDefinition = {
     namespace: "preset",
     endpoints: [
-      getEndpoint$3,
-      listEndpoint$4,
+      getEndpoint$4,
+      listEndpoint$5,
       createEndpoint$1,
       updateEndpoint$2,
       deleteEndpoint$2,
@@ -11717,12 +11712,12 @@ var __publicField = (obj, key, value) => {
   function registerWorldBookApis(registry2) {
     registry2.registerModule(worldBookModuleDefinition);
   }
-  function getContext$4() {
+  function getContext$5() {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
   function triggerRefresh() {
-    const ctx = getContext$4();
+    const ctx = getContext$5();
     if (!ctx)
       return;
     if (ctx.saveSettingsDebounced) {
@@ -11734,8 +11729,8 @@ var __publicField = (obj, key, value) => {
       eventSource.emit(eventTypes.SETTINGS_LOADED);
     }
   }
-  async function get$4(input) {
-    const ctx = getContext$4();
+  async function get$5(input) {
+    const ctx = getContext$5();
     if (!ctx)
       throw new Error("SillyTavern context not available");
     const scope = (input == null ? void 0 : input.scope) || "local";
@@ -11745,9 +11740,9 @@ var __publicField = (obj, key, value) => {
     const value = ctx.variables[scope].get(name);
     return { value };
   }
-  async function list$5(input) {
+  async function list$6(input) {
     var _a;
-    const ctx = getContext$4();
+    const ctx = getContext$5();
     if (!ctx)
       throw new Error("SillyTavern context not available");
     const scope = (input == null ? void 0 : input.scope) || "local";
@@ -11758,7 +11753,7 @@ var __publicField = (obj, key, value) => {
     return { variables: { ...globals } };
   }
   async function set(input) {
-    const ctx = getContext$4();
+    const ctx = getContext$5();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -11767,7 +11762,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function deleteVariable(input) {
-    const ctx = getContext$4();
+    const ctx = getContext$5();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -11776,7 +11771,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function add$1(input) {
-    const ctx = getContext$4();
+    const ctx = getContext$5();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -11785,7 +11780,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function inc(input) {
-    const ctx = getContext$4();
+    const ctx = getContext$5();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -11794,7 +11789,7 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   async function dec(input) {
-    const ctx = getContext$4();
+    const ctx = getContext$5();
     if (!ctx)
       return { ok: false };
     const scope = input.scope || "local";
@@ -11803,8 +11798,8 @@ var __publicField = (obj, key, value) => {
     return { ok: true };
   }
   const endpoints$2 = [
-    { name: "get", handler: get$4 },
-    { name: "list", handler: list$5 },
+    { name: "get", handler: get$5 },
+    { name: "list", handler: list$6 },
     { name: "set", handler: set },
     { name: "delete", handler: deleteVariable },
     { name: "add", handler: add$1 },
@@ -11826,7 +11821,7 @@ var __publicField = (obj, key, value) => {
       return null;
     }
   }
-  async function list$4(input) {
+  async function list$5(input) {
     const includeGlobal = (input == null ? void 0 : input.includeGlobal) ?? true;
     const includeCharacter = (input == null ? void 0 : input.includeCharacter) ?? true;
     const includePreset = (input == null ? void 0 : input.includePreset) ?? true;
@@ -11850,7 +11845,7 @@ var __publicField = (obj, key, value) => {
     }
     return { regexScripts: rawScripts.map(fromStRegex) };
   }
-  async function get$3(input) {
+  async function get$4(input) {
     const idOrName = String(input.idOrName || "").trim();
     if (!idOrName)
       throw new Error("idOrName is required");
@@ -11882,7 +11877,7 @@ var __publicField = (obj, key, value) => {
     return { text: result };
   }
   async function run$1(input) {
-    const { regexScript } = await get$3({ idOrName: input.idOrName });
+    const { regexScript } = await get$4({ idOrName: input.idOrName });
     if (!regexScript)
       throw new Error(`Regex script not found: ${input.idOrName}`);
     const engine = await importRegexEngine();
@@ -12011,13 +12006,13 @@ var __publicField = (obj, key, value) => {
     (_c = ctx.reloadCurrentChat) == null ? void 0 : _c.call(ctx);
     return { success: true };
   }
-  const getEndpoint$2 = {
+  const getEndpoint$3 = {
     name: "get",
-    handler: get$3
+    handler: get$4
   };
-  const listEndpoint$3 = {
+  const listEndpoint$4 = {
     name: "list",
-    handler: list$4
+    handler: list$5
   };
   const processEndpoint$1 = {
     name: "process",
@@ -12041,7 +12036,7 @@ var __publicField = (obj, key, value) => {
   };
   const regexScriptModuleDefinition = {
     namespace: "regexScript",
-    endpoints: [getEndpoint$2, listEndpoint$3, processEndpoint$1, runEndpoint, createEndpoint, updateEndpoint$1, deleteEndpoint$1]
+    endpoints: [getEndpoint$3, listEndpoint$4, processEndpoint$1, runEndpoint, createEndpoint, updateEndpoint$1, deleteEndpoint$1]
   };
   function registerRegexScriptApis(registry2) {
     registry2.registerModule(regexScriptModuleDefinition);
@@ -12049,11 +12044,11 @@ var __publicField = (obj, key, value) => {
   const registeredByPrimary = /* @__PURE__ */ new Map();
   const nameToPrimary = /* @__PURE__ */ new Map();
   const legacyEnvByNonce = /* @__PURE__ */ new Map();
-  function getContext$3() {
+  function getContext$4() {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
-  function normalizeName(name) {
+  function normalizeName$1(name) {
     return String(name ?? "").trim();
   }
   function normalizeAliasNames(aliases) {
@@ -12195,11 +12190,11 @@ var __publicField = (obj, key, value) => {
       handler: options.handler
     };
   }
-  async function register(input) {
+  async function register$1(input) {
     var _a, _b, _c, _d, _e, _f;
-    const name = normalizeName(input == null ? void 0 : input.name);
+    const name = normalizeName$1(input == null ? void 0 : input.name);
     try {
-      const ctx = getContext$3();
+      const ctx = getContext$4();
       if (!ctx) {
         return { ok: false, name, registeredNames: [], error: "SillyTavern context not available" };
       }
@@ -12373,17 +12368,17 @@ var __publicField = (obj, key, value) => {
       };
     }
   }
-  async function unregister(input) {
+  async function unregister$1(input) {
     var _a, _b;
     try {
-      const ctx = getContext$3();
+      const ctx = getContext$4();
       if (!ctx)
         return { ok: false, removed: [], error: "SillyTavern context not available" };
       const registry2 = (_a = ctx.macros) == null ? void 0 : _a.registry;
       if (!(registry2 == null ? void 0 : registry2.unregisterMacro)) {
         return { ok: false, removed: [], error: "Macro registry not available in SillyTavern context" };
       }
-      const name = normalizeName(input == null ? void 0 : input.name);
+      const name = normalizeName$1(input == null ? void 0 : input.name);
       if (!name)
         return { ok: false, removed: [], error: "name is required" };
       const force = !!input.force;
@@ -12436,9 +12431,9 @@ var __publicField = (obj, key, value) => {
       return { ok: false, removed: [], error: e instanceof Error ? e.message : String(e) };
     }
   }
-  async function list$3(input) {
+  async function list$4(input) {
     var _a;
-    const ctx = getContext$3();
+    const ctx = getContext$4();
     const registry2 = (_a = ctx == null ? void 0 : ctx.macros) == null ? void 0 : _a.registry;
     if (!(registry2 == null ? void 0 : registry2.getAllMacros))
       return { macros: [] };
@@ -12477,7 +12472,7 @@ var __publicField = (obj, key, value) => {
   async function process(input) {
     var _a, _b, _c, _d;
     try {
-      const ctx = getContext$3();
+      const ctx = getContext$4();
       if (!ctx)
         return { ok: false, text: String((input == null ? void 0 : input.text) ?? ""), engine: "substituteParams", error: "SillyTavern context not available" };
       const text = String((input == null ? void 0 : input.text) ?? "");
@@ -12529,17 +12524,17 @@ var __publicField = (obj, key, value) => {
       };
     }
   }
-  const registerEndpoint = {
+  const registerEndpoint$1 = {
     name: "register",
-    handler: register
+    handler: register$1
   };
-  const unregisterEndpoint = {
+  const unregisterEndpoint$1 = {
     name: "unregister",
-    handler: unregister
+    handler: unregister$1
   };
-  const listEndpoint$2 = {
+  const listEndpoint$3 = {
     name: "list",
-    handler: list$3
+    handler: list$4
   };
   const processEndpoint = {
     name: "process",
@@ -12547,7 +12542,7 @@ var __publicField = (obj, key, value) => {
   };
   const macrosModuleDefinition = {
     namespace: "macros",
-    endpoints: [registerEndpoint, unregisterEndpoint, listEndpoint$2, processEndpoint]
+    endpoints: [registerEndpoint$1, unregisterEndpoint$1, listEndpoint$3, processEndpoint]
   };
   function registerMacrosApis(registry2) {
     registry2.registerModule(macrosModuleDefinition);
@@ -12663,12 +12658,12 @@ var __publicField = (obj, key, value) => {
       createDate
     };
   }
-  async function get$2(input) {
+  async function get$3(input) {
     const avatarUrl = avatarUrlFromName(input == null ? void 0 : input.name);
     const raw = await postJson$2("/api/characters/get", { avatar_url: avatarUrl }, "json");
     return { character: toCharacterCard(raw) };
   }
-  async function list$2(input = {}) {
+  async function list$3(input = {}) {
     const rawList = await postJson$2("/api/characters/all", {}, "json");
     if (!(input == null ? void 0 : input.full)) {
       return { characters: (Array.isArray(rawList) ? rawList : []).map((x) => toCharacterCard(x)) };
@@ -12678,7 +12673,7 @@ var __publicField = (obj, key, value) => {
       const avatar = getAvatarFromAny(c);
       if (!avatar)
         continue;
-      const full = await get$2({ name: stripPngSuffix(avatar) });
+      const full = await get$3({ name: stripPngSuffix(avatar) });
       out.push(full.character);
     }
     return { characters: out };
@@ -12704,18 +12699,18 @@ var __publicField = (obj, key, value) => {
       ...patch
     }, "void");
     if (input == null ? void 0 : input.returnCharacter) {
-      const updated = await get$2({ name: input == null ? void 0 : input.name });
+      const updated = await get$3({ name: input == null ? void 0 : input.name });
       return { ok: true, character: updated.character };
     }
     return { ok: true };
   }
-  const getEndpoint$1 = {
+  const getEndpoint$2 = {
     name: "get",
-    handler: get$2
+    handler: get$3
   };
-  const listEndpoint$1 = {
+  const listEndpoint$2 = {
     name: "list",
-    handler: list$2
+    handler: list$3
   };
   const deleteEndpoint = {
     name: "delete",
@@ -12727,7 +12722,7 @@ var __publicField = (obj, key, value) => {
   };
   const characterModuleDefinition = {
     namespace: "character",
-    endpoints: [getEndpoint$1, listEndpoint$1, deleteEndpoint, updateEndpoint]
+    endpoints: [getEndpoint$2, listEndpoint$2, deleteEndpoint, updateEndpoint]
   };
   function registerCharacterApis(registry2) {
     registry2.registerModule(characterModuleDefinition);
@@ -12991,13 +12986,13 @@ var __publicField = (obj, key, value) => {
       return "";
     }
   }
-  function getContext$2() {
+  function getContext$3() {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
   function getCurrentCharacterAvatarFileName() {
     var _a;
-    const ctx = getContext$2();
+    const ctx = getContext$3();
     if (!ctx)
       return null;
     const characterId = ctx.characterId;
@@ -13015,7 +13010,7 @@ var __publicField = (obj, key, value) => {
   }
   function getCurrentUserAvatarFileName() {
     var _a, _b;
-    const ctx = getContext$2();
+    const ctx = getContext$3();
     if (!ctx)
       return null;
     const personas = (_a = ctx.powerUserSettings) == null ? void 0 : _a.personas;
@@ -13034,7 +13029,7 @@ var __publicField = (obj, key, value) => {
   async function fetchUserAvatarsList() {
     var _a;
     try {
-      const ctx = getContext$2();
+      const ctx = getContext$3();
       const headers = ((_a = ctx == null ? void 0 : ctx.getRequestHeaders) == null ? void 0 : _a.call(ctx, { omitContentType: true })) || {};
       const response = await fetch("/api/avatars/get", {
         method: "POST",
@@ -13053,7 +13048,7 @@ var __publicField = (obj, key, value) => {
   }
   async function buildAvatarOutput(type, fileName, isCurrent, includeFullBase64 = true) {
     var _a, _b;
-    const ctx = getContext$2();
+    const ctx = getContext$3();
     let url;
     let thumbnailUrl;
     if (type === "character") {
@@ -13084,7 +13079,7 @@ var __publicField = (obj, key, value) => {
       isCurrent
     };
   }
-  async function get$1(input) {
+  async function get$2(input) {
     await waitAppReady();
     const { type, name } = input;
     if (!type) {
@@ -13112,13 +13107,13 @@ var __publicField = (obj, key, value) => {
     }
     return buildAvatarOutput(type, fileName, isCurrent);
   }
-  async function list$1(input) {
+  async function list$2(input) {
     await waitAppReady();
     const { type, includeFullBase64 = false } = input;
     if (!type) {
       throw new Error("type is required");
     }
-    const ctx = getContext$2();
+    const ctx = getContext$3();
     if (!ctx) {
       throw new Error("SillyTavern context not available");
     }
@@ -13155,27 +13150,27 @@ var __publicField = (obj, key, value) => {
     result.total = result.characters.length + result.users.length;
     return result;
   }
-  const getEndpoint = {
+  const getEndpoint$1 = {
     name: "get",
-    handler: get$1
+    handler: get$2
   };
-  const listEndpoint = {
+  const listEndpoint$1 = {
     name: "list",
-    handler: list$1
+    handler: list$2
   };
   const avatarModuleDefinition = {
     namespace: "avatar",
-    endpoints: [getEndpoint, listEndpoint]
+    endpoints: [getEndpoint$1, listEndpoint$1]
   };
   function registerAvatarApis(registry2) {
     registry2.registerModule(avatarModuleDefinition);
   }
-  function getContext$1() {
+  function getContext$2() {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
   async function postJson$1(url, input) {
-    const ctx = getContext$1();
+    const ctx = getContext$2();
     const headers = {};
     if (ctx == null ? void 0 : ctx.getRequestHeaders)
       Object.assign(headers, ctx.getRequestHeaders());
@@ -13228,12 +13223,12 @@ var __publicField = (obj, key, value) => {
   function registerCommandApis(registry2) {
     registry2.registerModule(commandModuleDefinition);
   }
-  function getContext() {
+  function getContext$1() {
     var _a, _b;
     return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
   }
   async function postJson(url, input) {
-    const ctx = getContext();
+    const ctx = getContext$1();
     const headers = {};
     if (ctx == null ? void 0 : ctx.getRequestHeaders)
       Object.assign(headers, ctx.getRequestHeaders());
@@ -13249,10 +13244,10 @@ var __publicField = (obj, key, value) => {
     }
     return await response.json();
   }
-  async function list(input) {
+  async function list$1(input) {
     return await postJson("/api/plugins/server-plugin-manager/list", input ?? {});
   }
-  async function get(input) {
+  async function get$1(input) {
     if (!(input == null ? void 0 : input.name))
       throw new Error("serverPlugin.get: name is required");
     return await postJson("/api/plugins/server-plugin-manager/get", input);
@@ -13281,8 +13276,8 @@ var __publicField = (obj, key, value) => {
     return await postJson("/api/plugins/server-plugin-manager/restart", input ?? {});
   }
   const endpoints = [
-    { name: "list", handler: list },
-    { name: "get", handler: get },
+    { name: "list", handler: list$1 },
+    { name: "get", handler: get$1 },
     { name: "add", handler: add },
     { name: "addZip", handler: addZip },
     { name: "addPath", handler: addPath },
@@ -13444,6 +13439,241 @@ var __publicField = (obj, key, value) => {
     };
     registry2.registerModule(moduleDef);
   }
+  const registeredByName = /* @__PURE__ */ new Map();
+  function getContext() {
+    var _a, _b;
+    return (_b = (_a = window.SillyTavern) == null ? void 0 : _a.getContext) == null ? void 0 : _b.call(_a);
+  }
+  function normalizeName(name) {
+    return String(name ?? "").trim();
+  }
+  function listAllToolsFromContext(ctx) {
+    const ToolManager = ctx == null ? void 0 : ctx.ToolManager;
+    const tools = ToolManager == null ? void 0 : ToolManager.tools;
+    return Array.isArray(tools) ? tools : [];
+  }
+  function serializeTool(tool) {
+    try {
+      const openAi = typeof (tool == null ? void 0 : tool.toFunctionOpenAI) === "function" ? tool.toFunctionOpenAI() : null;
+      const fn = openAi == null ? void 0 : openAi.function;
+      const name = typeof (fn == null ? void 0 : fn.name) === "string" ? fn.name : "";
+      if (!name)
+        return null;
+      const displayName = typeof (tool == null ? void 0 : tool.displayName) === "string" ? tool.displayName : void 0;
+      const description = typeof (fn == null ? void 0 : fn.description) === "string" ? fn.description : "";
+      const parameters = (fn == null ? void 0 : fn.parameters) ?? {};
+      const stealth = !!(tool == null ? void 0 : tool.stealth);
+      return {
+        name,
+        displayName,
+        description,
+        parameters,
+        stealth
+      };
+    } catch {
+      return null;
+    }
+  }
+  function findToolByName(ctx, name) {
+    const tools = listAllToolsFromContext(ctx);
+    for (const t of tools) {
+      const core = serializeTool(t);
+      if (!core)
+        continue;
+      if (core.name !== name)
+        continue;
+      const meta = registeredByName.get(name);
+      return {
+        ...core,
+        registeredByWrapper: !!meta,
+        registeredAt: meta == null ? void 0 : meta.registeredAt
+      };
+    }
+    return null;
+  }
+  async function isSupported() {
+    var _a;
+    const ctx = getContext();
+    const supported = !!((_a = ctx == null ? void 0 : ctx.isToolCallingSupported) == null ? void 0 : _a.call(ctx));
+    return { supported };
+  }
+  async function register(input) {
+    const ctx = getContext();
+    const name = normalizeName(input == null ? void 0 : input.name);
+    try {
+      if (!ctx) {
+        return { ok: false, name, error: "SillyTavern context not available" };
+      }
+      if (typeof ctx.registerFunctionTool !== "function") {
+        return { ok: false, name, error: "registerFunctionTool not available in SillyTavern context" };
+      }
+      if (!name) {
+        return { ok: false, name: "", error: "name is required" };
+      }
+      if (!(input == null ? void 0 : input.description)) {
+        return { ok: false, name, error: "description is required" };
+      }
+      if (!(input == null ? void 0 : input.parameters) || typeof input.parameters !== "object") {
+        return { ok: false, name, error: "parameters (JSON schema object) is required" };
+      }
+      if (typeof input.action !== "function") {
+        return { ok: false, name, error: "action must be a function" };
+      }
+      const allowOverwrite = !!input.allowOverwrite;
+      const existedBefore = !!findToolByName(ctx, name);
+      if (existedBefore && !allowOverwrite) {
+        return {
+          ok: false,
+          name,
+          overwritten: false,
+          error: `Tool already exists: ${name}. Pass allowOverwrite=true to overwrite it.`
+        };
+      }
+      ctx.registerFunctionTool({
+        name,
+        displayName: input.displayName,
+        description: input.description,
+        parameters: input.parameters,
+        action: input.action,
+        formatMessage: input.formatMessage,
+        shouldRegister: input.shouldRegister,
+        stealth: input.stealth
+      });
+      const registeredAt = Date.now();
+      registeredByName.set(name, { registeredAt });
+      return {
+        ok: true,
+        name,
+        overwritten: existedBefore,
+        registeredAt
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        name,
+        error: e instanceof Error ? e.message : String(e)
+      };
+    }
+  }
+  async function unregister(input) {
+    const ctx = getContext();
+    const name = normalizeName(input == null ? void 0 : input.name);
+    try {
+      if (!ctx) {
+        return { ok: false, name, error: "SillyTavern context not available" };
+      }
+      if (typeof ctx.unregisterFunctionTool !== "function") {
+        return { ok: false, name, error: "unregisterFunctionTool not available in SillyTavern context" };
+      }
+      if (!name) {
+        return { ok: false, name: "", error: "name is required" };
+      }
+      const force = !!input.force;
+      if (!force && !registeredByName.has(name)) {
+        return {
+          ok: false,
+          name,
+          error: `Tool "${name}" is not registered by this wrapper. Pass force=true to unregister anyway.`
+        };
+      }
+      const existedBefore = !!findToolByName(ctx, name);
+      ctx.unregisterFunctionTool(name);
+      registeredByName.delete(name);
+      return { ok: true, name, existed: existedBefore };
+    } catch (e) {
+      return {
+        ok: false,
+        name,
+        error: e instanceof Error ? e.message : String(e)
+      };
+    }
+  }
+  async function list(input) {
+    const ctx = getContext();
+    if (!ctx)
+      return { tools: [] };
+    const onlyRegisteredByWrapper = !!(input == null ? void 0 : input.onlyRegisteredByWrapper);
+    const tools = listAllToolsFromContext(ctx).map((t) => {
+      const core = serializeTool(t);
+      if (!core)
+        return null;
+      const meta = registeredByName.get(core.name);
+      const info = {
+        ...core,
+        registeredByWrapper: !!meta,
+        registeredAt: meta == null ? void 0 : meta.registeredAt
+      };
+      return info;
+    }).filter((x) => !!x);
+    return {
+      tools: onlyRegisteredByWrapper ? tools.filter((t) => t.registeredByWrapper) : tools
+    };
+  }
+  async function get(input) {
+    const ctx = getContext();
+    const name = normalizeName(input == null ? void 0 : input.name);
+    if (!ctx)
+      return { ok: false, error: "SillyTavern context not available" };
+    if (!name)
+      return { ok: false, error: "name is required" };
+    const tool = findToolByName(ctx, name);
+    if (!tool) {
+      return { ok: false, error: `Tool not found: ${name}` };
+    }
+    return { ok: true, tool };
+  }
+  async function invoke(input) {
+    const ctx = getContext();
+    const name = normalizeName(input == null ? void 0 : input.name);
+    try {
+      if (!ctx)
+        return { ok: false, name, error: "SillyTavern context not available" };
+      const ToolManager = ctx.ToolManager;
+      if (!ToolManager || typeof ToolManager.invokeFunctionTool !== "function") {
+        return { ok: false, name, error: "ToolManager.invokeFunctionTool not available in SillyTavern context" };
+      }
+      if (!name)
+        return { ok: false, name: "", error: "name is required" };
+      const existed = !!findToolByName(ctx, name);
+      if (!existed)
+        return { ok: false, name, error: `Tool not found: ${name}` };
+      const result = await ToolManager.invokeFunctionTool(name, (input == null ? void 0 : input.parameters) ?? {});
+      return { ok: true, name, result };
+    } catch (e) {
+      return { ok: false, name, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+  const isSupportedEndpoint = {
+    name: "isSupported",
+    handler: isSupported
+  };
+  const registerEndpoint = {
+    name: "register",
+    handler: register
+  };
+  const unregisterEndpoint = {
+    name: "unregister",
+    handler: unregister
+  };
+  const listEndpoint = {
+    name: "list",
+    handler: list
+  };
+  const getEndpoint = {
+    name: "get",
+    handler: get
+  };
+  const invokeEndpoint = {
+    name: "invoke",
+    handler: invoke
+  };
+  const functionCallingModuleDefinition = {
+    namespace: "functionCalling",
+    endpoints: [isSupportedEndpoint, registerEndpoint, unregisterEndpoint, listEndpoint, getEndpoint, invokeEndpoint]
+  };
+  function registerFunctionCallingApis(registry2) {
+    registry2.registerModule(functionCallingModuleDefinition);
+  }
   function registerAllApis(registry2) {
     registerPromptApis(registry2);
     registerFileApis(registry2);
@@ -13461,6 +13691,7 @@ var __publicField = (obj, key, value) => {
     registerCommandApis(registry2);
     registerServerPluginApis(registry2);
     registerServerApiApis(registry2);
+    registerFunctionCallingApis(registry2);
   }
   const VERSION_STR = "1.0.0";
   const registry = new ApiRegistry();
